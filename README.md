@@ -1,4 +1,4 @@
-# clean-code
+# ship-code
 
 Anti-slop agentic coding workflow for Claude Code. No enterprise theater. Just the practices that actually prevent garbage from entering your codebase.
 
@@ -7,7 +7,7 @@ Anti-slop agentic coding workflow for Claude Code. No enterprise theater. Just t
 ## Install
 
 ```bash
-npx skills add aliprogrammin/clean-code
+npx skills add aliprogrammin/ship-code
 ```
 
 Or manually: clone this repo into `.claude/commands/` in your project.

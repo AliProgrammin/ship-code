@@ -1,5 +1,5 @@
 ---
-name: clean-code
+name: ship-code
 description: >
   Anti-slop agentic coding workflow for Claude Code. Use this skill whenever the user wants to set up
   an agentic coding workflow, enforce quality gates, prevent technical debt, write precise task specs,
@@ -9,7 +9,7 @@ description: >
   something non-trivial with Claude Code where quality and traceability matter.
 ---
 
-# clean-code
+# ship-code
 
 A lightweight anti-slop workflow for Claude Code. No enterprise theater. Just the practices that
 actually prevent garbage from entering your codebase.
