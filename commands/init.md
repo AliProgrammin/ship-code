@@ -1,7 +1,7 @@
 ---
 description: "Set up hooks, gates, config, and hard blocks for this project"
 ---
-# /clean:init
+# /ship-code:init
 
 Set up this project for anti-slop agentic development.
 
@@ -12,9 +12,9 @@ Set up this project for anti-slop agentic development.
    - Check for `pyproject.toml` / `requirements.txt` → Python project
    - Check for other markers and note the stack
 
-2. **Create `.clean/` directory structure**
+2. **Create `.ship/` directory structure**
 
-   Create `.clean/config.json`:
+   Create `.ship/config.json`:
    ```json
    {
      "gates": {
@@ -24,12 +24,12 @@ Set up this project for anti-slop agentic development.
        "no_push": true
      },
      "stack": "<detected>",
-     "issue_log": ".clean/issues.md",
-     "task_dir": ".clean/tasks/"
+     "issue_log": ".ship/issues.md",
+     "task_dir": ".ship/tasks/"
    }
    ```
 
-   Create `.clean/issues.md`:
+   Create `.ship/issues.md`:
    ```markdown
    # Agent Issues & Learnings
    _Centralized log. All agent blockers, root causes, and learnings go here._
@@ -38,7 +38,7 @@ Set up this project for anti-slop agentic development.
    |------|------|-------|------------|------------|
    ```
 
-   Create `.clean/HARD_BLOCKS.md`:
+   Create `.ship/HARD_BLOCKS.md`:
    ```markdown
    # Hard Blocks — What Agents Can NEVER Do
 
@@ -53,7 +53,7 @@ Set up this project for anti-slop agentic development.
    - NEVER fix bad agent output directly — reset and fix the spec instead
    ```
 
-   Create `.clean/tasks/` directory (empty, with `.gitkeep`)
+   Create `.ship/tasks/` directory (empty, with `.gitkeep`)
 
 3. **Install pre-commit hook**
 
@@ -61,14 +61,14 @@ Set up this project for anti-slop agentic development.
 
    ```bash
    #!/bin/bash
-   # clean-code pre-commit gate
+   # ship-code pre-commit gate
    # Runs: lint → types → tests. Blocks commit on failure.
 
    set -e
    TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-   ISSUES_FILE=".clean/issues.md"
+   ISSUES_FILE=".ship/issues.md"
 
-   echo "🔒 clean-code gates running..."
+   echo "🔒 ship-code gates running..."
 
    # Detect stack and run appropriate gates
    if [ -f "package.json" ]; then
@@ -99,16 +99,16 @@ Set up this project for anti-slop agentic development.
 
    Run: `chmod +x .git/hooks/pre-commit`
 
-4. **Create `.clean/commit-template`** for traceable commits:
+4. **Create `.ship/commit-template`** for traceable commits:
    ```
-   <type>(clean-<task-id>): <title>
+   <type>(ship-<task-id>): <title>
    
    agent: claude-code
    task: <spec-file-path>
    timestamp: <ISO timestamp>
    scope: <files modified>
    ```
-   Configure it: `git config commit.template .clean/commit-template`
+   Configure it: `git config commit.template .ship/commit-template`
 
 5. **Report what was set up**
 

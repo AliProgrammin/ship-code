@@ -16,14 +16,14 @@ Or manually: clone this repo into `.claude/commands/` in your project.
 
 | Command | What it does |
 |---|---|
-| `/clean:init` | Set up hooks, gates, config, and hard blocks for this project |
-| `/clean:research <problem>` | Research a problem — best practices, libraries, codebase analysis |
-| `/clean:plan <description>` | Decompose a feature into atomic specs, then execute them |
-| `/clean:ship` | Ship multiple features at once — agent interviews you, plans, executes |
-| `/clean:run <spec-file>` | Execute a single spec file |
-| `/clean:verify` | Run all quality gates and report results |
-| `/clean:quick <description>` | Ad-hoc task with no ceremony — gates still enforced |
-| `/clean:help` | Show the guide |
+| `/ship-code:init` | Set up hooks, gates, config, and hard blocks for this project |
+| `/ship-code:research <problem>` | Research a problem — best practices, libraries, codebase analysis |
+| `/ship-code:plan <description>` | Decompose a feature into atomic specs, then execute them |
+| `/ship-code:ship` | Ship multiple features at once — agent interviews you, plans, executes |
+| `/ship-code:run <spec-file>` | Execute a single spec file |
+| `/ship-code:verify` | Run all quality gates and report results |
+| `/ship-code:quick <description>` | Ad-hoc task with no ceremony — gates still enforced |
+| `/ship-code:help` | Show the guide |
 
 ## The Golden Rules
 
@@ -40,7 +40,7 @@ Or manually: clone this repo into `.claude/commands/` in your project.
 You describe a feature
         │
         ▼
-  /clean:plan decomposes it
+  /ship-code:plan decomposes it
   into atomic XML spec files
         │
         ▼
@@ -63,10 +63,10 @@ You describe a feature
   You review the final result
 ```
 
-## File Structure After `/clean:init`
+## File Structure After `/ship-code:init`
 
 ```
-.clean/
+.ship/
 ├── config.json        # Gate settings, stack config
 ├── HARD_BLOCKS.md     # What agents can never do
 ├── issues.md          # Centralized agent learnings & blockers

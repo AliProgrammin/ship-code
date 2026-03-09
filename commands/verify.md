@@ -2,9 +2,9 @@
 description: "Run all quality gates and report results — lint, types, tests, mock audit"
 ---
 
-> **Context rule:** Delegates all work to the `clean-verifier` subagent. The main context only receives the gate report.
+> **Context rule:** Delegates all work to the `ship-verifier` subagent. The main context only receives the gate report.
 
-# /clean:verify
+# /ship-code:verify
 
 Run all quality gates and report status. Does not commit or modify anything.
 
@@ -48,7 +48,7 @@ Run all quality gates and report status. Does not commit or modify anything.
 4. **Report**
 
    ```
-   clean-code gate report
+   ship-code gate report
    ──────────────────────
    Lint        ✅ / ❌  (<N> errors)
    Types       ✅ / ❌  (<N> errors)
@@ -56,7 +56,7 @@ Run all quality gates and report status. Does not commit or modify anything.
    Mock audit  ✅ / ⚠️  (<N> suspicious mocks flagged)
    Hard blocks ✅ / ❌  (<violations if any>)
 
-   Open issues in .clean/issues.md: <N>
+   Open issues in .ship/issues.md: <N>
    ```
 
 5. **If anything failed**, identify root cause category:

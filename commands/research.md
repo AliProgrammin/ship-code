@@ -3,20 +3,20 @@ description: "Research a problem — best practices, libraries, codebase analysi
 argument-hint: "<problem or question>"
 ---
 
-> **Context rule:** Delegates all work to the `clean-researcher` subagent. The main context only receives the final report.
+> **Context rule:** Delegates all work to the `ship-researcher` subagent. The main context only receives the final report.
 
-# /clean:research
+# /ship-code:research
 
 Research a problem before building anything. Searches for best practices, analyzes the codebase,
 finds the right tools, and produces a saved report + optional spec suggestion.
 
-Usage: `/clean:research <problem or question>`
+Usage: `/ship-code:research <problem or question>`
 
 Examples:
-- `/clean:research how to handle authentication in Next.js`
-- `/clean:research best way to structure a REST API in Python`
-- `/clean:research what testing library should I use for React`
-- `/clean:research how to add rate limiting to my Express app`
+- `/ship-code:research how to handle authentication in Next.js`
+- `/ship-code:research best way to structure a REST API in Python`
+- `/ship-code:research what testing library should I use for React`
+- `/ship-code:research how to add rate limiting to my Express app`
 
 
 ## Rules

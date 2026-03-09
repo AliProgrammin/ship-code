@@ -2,14 +2,14 @@
 description: "Ship multiple features at once — agent interviews you, plans everything, executes with gates"
 ---
 
-> **Context rule:** Delegates all work to the `clean-shipper` subagent. The main context only handles the interview + plan review.
+> **Context rule:** Delegates all work to the `ship-shipper` subagent. The main context only handles the interview + plan review.
 
-# /clean:ship
+# /ship-code:ship
 
 Ship multiple things in one go. The agent interviews the user to understand what needs to be built,
 how much, and how fast — then plans and executes everything with full quality gates.
 
-Usage: `/clean:ship`
+Usage: `/ship-code:ship`
 
 No arguments needed. The agent asks everything it needs to know.
 
@@ -64,7 +64,7 @@ Shipped:
   ✅ Batch: <N> tasks, <N> commits
 
 Skipped / failed:
-  ❌ <task> — <reason> (see .clean/issues.md)
+  ❌ <task> — <reason> (see .ship/issues.md)
 
 Gates: lint ✅  types ✅  tests ✅  (<N> passing)
 
@@ -84,5 +84,5 @@ Git log:
 - **Never push** — user always pushes manually after reviewing
 - **Never continue past a failure** without user decision
 - **Yolo mode still has gates** — it just skips human review pauses, not quality checks
-- **If the ship plan is too big** (10+ phases or 20+ tasks), warn the user and suggest breaking it into multiple `/clean:ship` sessions
-- **Hard blocks from `/clean:init` still apply** — ship mode doesn't override them
+- **If the ship plan is too big** (10+ phases or 20+ tasks), warn the user and suggest breaking it into multiple `/ship-code:ship` sessions
+- **Hard blocks from `/ship-code:init` still apply** — ship mode doesn't override them

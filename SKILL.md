@@ -5,7 +5,7 @@ description: >
   an agentic coding workflow, enforce quality gates, prevent technical debt, write precise task specs,
   decompose complex features into atomic units, or run a spec→execute→verify loop. Trigger on phrases
   like "set up my project for Claude Code", "break this into tasks", "write a spec", "no slop", "quality
-  gates", "pre-commit hooks", "agentic workflow", "clean agent workflow", or any request to build
+  gates", "pre-commit hooks", "agentic workflow", "ship-code workflow", or any request to build
   something non-trivial with Claude Code where quality and traceability matter.
 ---
 
@@ -22,14 +22,14 @@ code, fix the environment — never patch the output.
 ## Installation
 
 This is a Claude Code plugin. Install it by placing this folder at:
-- **Project-level** (shared with team): `.claude/plugins/clean/`
-- **Global** (all your projects): `~/.claude/plugins/clean/`
+- **Project-level** (shared with team): `.claude/plugins/ship-code/`
+- **Global** (all your projects): `~/.claude/plugins/ship-code/`
 
-Commands will be available as `/clean:init`, `/clean:plan`, `/clean:ship`, etc.
+Commands will be available as `/ship-code:init`, `/ship-code:plan`, `/ship-code:ship`, etc.
 
-## About `.clean/`
+## About `.ship/`
 
-The `.clean/` folder is created **inside your project root** by `/clean:init`. It holds:
+The `.ship/` folder is created **inside your project root** by `/ship-code:init`. It holds:
 - Quality gate config
 - Hard blocks definition
 - Centralized issue log
@@ -41,13 +41,13 @@ This is intentional — it's project-level config that should live alongside you
 
 | Command | What it does |
 |---|---|
-| `/clean:init` | Set up hooks, gates, config, and hard blocks for this project |
-| `/clean:research <problem>` | Research a problem — best practices, libraries, codebase analysis, spec suggestion |
-| `/clean:plan <description>` | Decompose a feature into atomic specs, then execute them |
-| `/clean:ship` | Ship multiple features at once — agent interviews you, plans everything, executes with gates |
-| `/clean:run <spec-file>` | Execute a single spec file |
-| `/clean:verify` | Run all quality gates and report results |
-| `/clean:quick <description>` | Ad-hoc task with no ceremony — gates still enforced |
+| `/ship-code:init` | Set up hooks, gates, config, and hard blocks for this project |
+| `/ship-code:research <problem>` | Research a problem — best practices, libraries, codebase analysis, spec suggestion |
+| `/ship-code:plan <description>` | Decompose a feature into atomic specs, then execute them |
+| `/ship-code:ship` | Ship multiple features at once — agent interviews you, plans everything, executes with gates |
+| `/ship-code:run <spec-file>` | Execute a single spec file |
+| `/ship-code:verify` | Run all quality gates and report results |
+| `/ship-code:quick <description>` | Ad-hoc task with no ceremony — gates still enforced |
 
 ---
 
@@ -57,13 +57,13 @@ The main context is the orchestrator. It stays light. All heavy work happens in 
 
 | Command | Who does the work |
 |---|---|
-| `/clean:research` | Delegates entirely to `clean-researcher` subagent |
-| `/clean:plan` | Delegates entirely to `clean-planner` subagent |
-| `/clean:ship` | Interviews user in main context → delegates execution to `clean-shipper` subagent |
-| `/clean:verify` | Delegates entirely to `clean-verifier` subagent |
-| `/clean:run` | Delegates entirely to `clean-planner` subagent (single spec mode) |
-| `/clean:quick` | Runs in main context — lightweight enough, no subagent needed |
-| `/clean:init` | Runs in main context — one-time setup, no subagent needed |
+| `/ship-code:research` | Delegates entirely to `ship-researcher` subagent |
+| `/ship-code:plan` | Delegates entirely to `ship-planner` subagent |
+| `/ship-code:ship` | Interviews user in main context → delegates execution to `ship-shipper` subagent |
+| `/ship-code:verify` | Delegates entirely to `ship-verifier` subagent |
+| `/ship-code:run` | Delegates entirely to `ship-planner` subagent (single spec mode) |
+| `/ship-code:quick` | Runs in main context — lightweight enough, no subagent needed |
+| `/ship-code:init` | Runs in main context — one-time setup, no subagent needed |
 
 **Rules for the main context:**
 - Never read large files or grep the whole codebase in the main context
@@ -76,7 +76,7 @@ The main context is the orchestrator. It stays light. All heavy work happens in 
 - Each subagent gets exactly one job with a clear deliverable
 - Subagents cannot spawn other subagents
 - Subagents return summaries, never full transcripts
-- Subagents write their artifacts to disk (`.clean/`) so nothing is lost when they exit
+- Subagents write their artifacts to disk (`.ship/`) so nothing is lost when they exit
 
 ---
 
@@ -107,21 +107,21 @@ These govern every agent action in this workflow:
 
 ---
 
-## `/clean:init`
+## `/ship-code:init`
 
 Sets up the project for anti-slop agentic development.
 
 ### What it does
 
-1. Creates `.clean/config.json` with project quality gate settings
+1. Creates `.ship/config.json` with project quality gate settings
 2. Installs pre-commit hook that runs gates before every commit
-3. Creates `.clean/issues.md` as the single source of truth for agent learnings/blockers
-4. Creates `.clean/HARD_BLOCKS.md` defining what agents can never do
+3. Creates `.ship/issues.md` as the single source of truth for agent learnings/blockers
+4. Creates `.ship/HARD_BLOCKS.md` defining what agents can never do
 5. Detects stack (Node/Python/etc) and configures appropriate linting + type-checking
 
 ### Hard blocks (default)
 
-Written to `.clean/HARD_BLOCKS.md` and enforced via hook:
+Written to `.ship/HARD_BLOCKS.md` and enforced via hook:
 
 - **NEVER** `git push` — human reviews and pushes manually
 - **NEVER** modify files outside declared scope
@@ -129,7 +129,7 @@ Written to `.clean/HARD_BLOCKS.md` and enforced via hook:
 - **NEVER** use `any` type or disable linting rules to make gates pass
 - **NEVER** commit with failing tests
 
-### Config written to `.clean/config.json`
+### Config written to `.ship/config.json`
 
 ```json
 {
@@ -140,20 +140,20 @@ Written to `.clean/HARD_BLOCKS.md` and enforced via hook:
     "no_push": true
   },
   "stack": "auto-detected",
-  "issue_log": ".clean/issues.md",
-  "task_dir": ".clean/tasks/"
+  "issue_log": ".ship/issues.md",
+  "task_dir": ".ship/tasks/"
 }
 ```
 
 ### Hook installed to `.git/hooks/pre-commit`
 
-Runs: lint → types → tests. Blocks commit if any fail. Logs failures to `.clean/issues.md` with timestamp and task ID.
+Runs: lint → types → tests. Blocks commit if any fail. Logs failures to `.ship/issues.md` with timestamp and task ID.
 
 ### Traceability in commits
 
 Every commit message follows this format:
 ```
-feat(clean-<task-id>): <title>
+feat(ship-<task-id>): <title>
 
 agent: claude-code
 task: <spec-file-path>
@@ -167,13 +167,13 @@ This makes every change fully attributable — who (agent), what (task), when (t
 
 For multi-agent flows, each agent gets its own git worktree:
 ```bash
-git worktree add .clean/worktrees/<task-id> HEAD
+git worktree add .ship/worktrees/<task-id> HEAD
 ```
 Agent works in its worktree. Changes are merged back only after gates pass. Agents never share a working directory.
 
 ---
 
-## `/clean:plan <description>`
+## `/ship-code:plan <description>`
 
 The main workflow. Takes a plain-English description, produces atomic specs, executes them, commits each one.
 
@@ -186,7 +186,7 @@ Agent analyzes the request and breaks it into atomic units following "one agent,
 - Dependencies between tasks are explicit
 - Scope is locked: files the task can and cannot touch
 
-Output: `.clean/tasks/<slug>/` directory with one spec file per unit.
+Output: `.ship/tasks/<slug>/` directory with one spec file per unit.
 
 ### Spec file format
 
@@ -221,8 +221,8 @@ For each spec file (sequentially by default, parallel if no dependencies):
 2. Agent reads spec, declares scope out loud
 3. Implements changes
 4. Runs gates automatically
-5. If gates pass → atomic commit with full traceability: `feat(clean-<id>): <title>`
-6. If gates fail → diagnose root cause, log to `.clean/issues.md`, fix spec or context, rerun. **Never patch output.**
+5. If gates pass → atomic commit with full traceability: `feat(ship-<id>): <title>`
+6. If gates fail → diagnose root cause, log to `.ship/issues.md`, fix spec or context, rerun. **Never patch output.**
 7. If gates fail twice on the same spec → **stop, escalate to human.** Log the blocker. Do not attempt a third run with the same spec.
 
 ### Phase 3 — Human verify
@@ -231,13 +231,13 @@ After all tasks complete, agent presents:
 - What was built (summary per task)
 - Git log of atomic commits
 - Gate results
-- Open items logged to `.clean/issues.md`
+- Open items logged to `.ship/issues.md`
 
-Human reviews. If something is wrong → `/clean:plan` again with a corrected description, or `/clean:run` to re-execute a single spec.
+Human reviews. If something is wrong → `/ship-code:plan` again with a corrected description, or `/ship-code:run` to re-execute a single spec.
 
 ---
 
-## `/clean:run <spec-file>`
+## `/ship-code:run <spec-file>`
 
 Execute a single spec in isolation. Useful for re-running a failed task or executing a manually written spec.
 
@@ -249,7 +249,7 @@ Execute a single spec in isolation. Useful for re-running a failed task or execu
 
 ---
 
-## `/clean:verify`
+## `/ship-code:verify`
 
 Run all quality gates and report status. Does not commit anything.
 
@@ -258,13 +258,13 @@ Reports:
 - ✅ / ❌ Type check  
 - ✅ / ❌ Tests (with count)
 - ✅ / ❌ No forbidden patterns (mocks audit, `any` usage, disabled rules)
-- Summary of `.clean/issues.md` open items
+- Summary of `.ship/issues.md` open items
 
 If anything fails: identifies root cause category (bad spec, missing context, scope violation, environment issue) and suggests the fix.
 
 ---
 
-## `/clean:quick <description>`
+## `/ship-code:quick <description>`
 
 For small ad-hoc tasks that don't need decomposition. Same guarantees, less ceremony.
 
@@ -295,10 +295,10 @@ When output is wrong, use this decision tree before retrying:
 
 ---
 
-## File structure after `/clean:init`
+## File structure after `/ship-code:init`
 
 ```
-.clean/
+.ship/
 ├── config.json          # Gate settings, stack config
 ├── HARD_BLOCKS.md        # What agents can never do
 ├── issues.md            # Centralized agent learnings & blockers
