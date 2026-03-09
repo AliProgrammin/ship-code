@@ -10,7 +10,7 @@ Anti-slop agentic coding workflow for Claude Code. No enterprise theater. Just t
 npx skills add aliprogrammin/ship-code
 ```
 
-Or manually: clone this repo into `.claude/commands/` in your project.
+Or manually: clone this repo into `.claude/skills/ship-code/` in your project (or `~/.claude/skills/ship-code/` for global install).
 
 ## Commands
 
