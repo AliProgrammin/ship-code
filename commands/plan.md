@@ -1,53 +1,43 @@
 ---
-description: "Decompose a feature into atomic specs, execute them, and commit each one"
+description: "Decompose a feature into atomic specs with dependencies and populate the queue"
 argument-hint: "<description of what to build>"
 ---
 
-> **Context rule:** Delegates all work to the `ship-planner` subagent. The main context only receives a commit summary.
+> **Context rule:** Delegates all work to the `ship-planner` subagent. The main context only receives the plan summary.
 
 # /ship-code:plan
 
-Decompose a feature into atomic specs, execute them, and commit each one.
+Decompose a feature into atomic specs, populate QUEUE.md with dependencies, and optionally execute.
 
 Usage: `/ship-code:plan <plain English description of what to build>`
 
+## Steps
 
-## Phase 2 — Execute
+1. Check `.ship/config.json` → `workflow.research_before_plan`
+   - If `true`: spawn `ship-researcher` first, save output to `.ship/tasks/<slug>/research.md`
+   - If `false`: skip to planning
 
-For each spec in order (or parallel if no dependencies):
+2. Spawn `ship-planner` agent with the feature description (and research if it exists)
 
-1. **Read before writing** — scan existing code in target files for patterns, naming conventions, error handling style. New code must match. This is the recursive quality loop.
-2. Read the spec completely
-3. Declare scope out loud: "I will only modify: [files from can-modify]"
-4. Implement according to steps — no deviation from scope
-5. Run gates: `npm run lint && npm run typecheck && npm test` (or Python equivalent)
-6. **If gates pass:** commit with full traceability: `feat(ship-NNN): title / agent: claude-code / task: spec path / timestamp: ISO / scope: files`
-7. **If gates fail:**
-   - Do NOT patch the output to silence errors
-   - Diagnose root cause (spec ambiguity? missing context? wrong scope?)
-   - Log to `.ship/issues.md`
-   - Fix the spec, then rerun from scratch
-   - **If the same task fails twice: STOP. Log the blocker. Surface to human. Do not attempt a third run.**
+3. Planner decomposes → creates spec files in `.ship/tasks/<slug>/` → populates QUEUE.md
 
----
-
-## Phase 3 — Human verify
-
-After all tasks complete, output:
+4. Show the user the plan summary:
 
 ```
-✅ ship-code execution complete
+Plan ready
 
-Tasks completed:
-  [001] <title> — committed abc1234
-  [002] <title> — committed def5678
-  ...
+Tasks:
+  001 <title> — wave 1
+  002 <title> — wave 1
+  003 <title> — wave 2, needs: 001, 002
 
-Gates: lint ✅  types ✅  tests ✅  (N passing)
+Specs: .ship/tasks/<slug>/
+Queue: .ship/QUEUE.md
 
-Open issues: see .ship/issues.md
-
-👉 Please verify the feature works as intended.
-   If something is wrong, do NOT manually patch it.
-   Tell me what's wrong and I'll fix the spec and rerun.
+👉 Run /ship-code:loop to execute
+   Or /ship-code:run .ship/tasks/<slug>/001-<title>.xml for a single task
 ```
+
+5. Ask the user: "Want me to start executing? Or review the specs first?"
+   - If yes → spawn `ship-brain` to run the loop
+   - If review → wait for user to come back with `/ship-code:loop`

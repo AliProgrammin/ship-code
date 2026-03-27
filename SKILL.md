@@ -21,33 +21,40 @@ code, fix the environment — never patch the output.
 
 ## Installation
 
-This is a Claude Code plugin. Install it by placing this folder at:
-- **Project-level** (shared with team): `.claude/plugins/ship-code/`
-- **Global** (all your projects): `~/.claude/plugins/ship-code/`
+This is a Claude Code plugin. Install via:
+```bash
+npx ship-code@latest
+```
 
-Commands will be available as `/ship-code:init`, `/ship-code:plan`, `/ship-code:ship`, etc.
+Or place this folder manually at:
+- **Global** (all projects): `~/.claude/plugins/ship-code/`
+- **Project-level** (this project only): `.claude/plugins/ship-code/`
+
+Commands will be available as `/ship-code:init`, `/ship-code:ship`, etc.
 
 ## About `.ship/`
 
 The `.ship/` folder is created **inside your project root** by `/ship-code:init`. It holds:
-- Quality gate config
-- Hard blocks definition
-- Centralized issue log
-- Task spec files
-
-This is intentional — it's project-level config that should live alongside your code (and optionally be committed to git for team sharing).
+- Config, queue, state, hard blocks, issues
+- Active task specs
+- Archived completed work
 
 ---
 
+## Commands
+
 | Command | What it does |
 |---|---|
-| `/ship-code:init` | Set up hooks, gates, config, and hard blocks for this project |
-| `/ship-code:research <problem>` | Research a problem — best practices, libraries, codebase analysis, spec suggestion |
-| `/ship-code:plan <description>` | Decompose a feature into atomic specs, then execute them |
-| `/ship-code:ship` | Ship multiple features at once — agent interviews you, plans everything, executes with gates |
-| `/ship-code:run <spec-file>` | Execute a single spec file |
-| `/ship-code:verify` | Run all quality gates and report results |
-| `/ship-code:quick <description>` | Ad-hoc task with no ceremony — gates still enforced |
+| `/ship-code:init` | Set up hooks, gates, config, queue, and hard blocks |
+| `/ship-code:ship` | Full flow — interview, research, plan, execute in waves, archive |
+| `/ship-code:plan <desc>` | Decompose a feature into specs and populate the queue |
+| `/ship-code:loop` | Resume execution from QUEUE.md |
+| `/ship-code:queue` | Show, add, or reorder tasks in the queue |
+| `/ship-code:run <spec>` | Execute a single spec file |
+| `/ship-code:research <problem>` | Research a problem before building |
+| `/ship-code:verify` | Run all quality gates and report |
+| `/ship-code:quick <desc>` | Ad-hoc small task — gates still enforced |
+| `/ship-code:help` | Show the guide |
 
 ---
 
@@ -57,241 +64,127 @@ The main context is the orchestrator. It stays light. All heavy work happens in 
 
 | Command | Who does the work |
 |---|---|
-| `/ship-code:research` | Delegates entirely to `ship-researcher` subagent |
-| `/ship-code:plan` | Delegates entirely to `ship-planner` subagent |
-| `/ship-code:ship` | Interviews user in main context → delegates execution to `ship-shipper` subagent |
-| `/ship-code:verify` | Delegates entirely to `ship-verifier` subagent |
-| `/ship-code:run` | Delegates entirely to `ship-planner` subagent (single spec mode) |
-| `/ship-code:quick` | Runs in main context — lightweight enough, no subagent needed |
-| `/ship-code:init` | Runs in main context — one-time setup, no subagent needed |
+| `/ship-code:ship` | Interview in main → `ship-researcher` → `ship-planner` → `ship-brain` (spawns `ship-executor` agents) |
+| `/ship-code:plan` | `ship-researcher` (if enabled) → `ship-planner` |
+| `/ship-code:loop` | `ship-brain` (spawns `ship-executor` agents in parallel waves) |
+| `/ship-code:run` | Single `ship-executor` |
+| `/ship-code:research` | `ship-researcher` |
+| `/ship-code:verify` | `ship-verifier` |
+| `/ship-code:queue` | Runs in main context — lightweight read/write of QUEUE.md |
+| `/ship-code:quick` | Runs in main context — small enough |
+| `/ship-code:init` | Runs in main context — one-time setup |
 
 **Rules for the main context:**
 - Never read large files or grep the whole codebase in the main context
 - Never run tests or linters directly in the main context
 - Never accumulate tool call output in the main context — delegate instead
 - Subagents return only a concise summary — the main context never sees raw tool output
-- Subagents are fire-and-done: they complete their task, return a summary, and are gone
 
 **Rules for subagents:**
 - Each subagent gets exactly one job with a clear deliverable
-- Subagents cannot spawn other subagents
-- Subagents return summaries, never full transcripts
-- Subagents write their artifacts to disk (`.ship/`) so nothing is lost when they exit
+- Subagents write artifacts to disk (`.ship/`) so nothing is lost when they exit
+- `ship-brain` is the only agent that can spawn other agents (`ship-executor`)
+- All other agents are leaf agents — they do their work and return
 
 ---
 
-These govern every agent action in this workflow:
+## The golden rules
 
-1. **Never fix bad output — reset and rerun.** If output is wrong, diagnose the root cause (bad spec,
-   missing context, wrong scope), fix that, and rerun from scratch.
+1. **Never fix bad output — reset and rerun.** If output is wrong, fix the spec, not the code.
 
-2. **One agent, one task, one prompt.** Each agent gets exactly one job. Focused agents are correct agents.
+2. **One agent, one task, one prompt.** Each agent gets exactly one job.
 
-3. **Gates before handoff.** Tests + lint + types must pass 100% before any task is considered done,
-   committed, or passed to another agent.
+3. **Gates before handoff.** Tests + lint + types must pass 100% before any commit.
 
-4. **Never mock what you can use for real.** Mocks hide real failures. Real integrations catch them.
+4. **Never mock what you can use for real.** Mocks hide failures.
 
-5. **Precise specs, zero inference.** Agents must never guess intent. Specs include exact files, line
-   ranges, inputs, outputs, and acceptance criteria.
+5. **Precise specs, zero inference.** Agents never guess. Specs include exact files, line numbers, patterns.
 
-6. **Pit of success.** The easiest path the agent can take should always be the correct one.
+6. **Pit of success.** The easiest path the agent can take should be the correct one.
 
-7. **Traceability always.** Every change is attributable to a specific agent, task, and timestamp. Commit messages encode this. The hook logs it.
+7. **Traceability always.** Every commit: `feat(ship-<id>): <title>` with agent/task/scope in body.
 
-8. **Isolated work trees.** Each agent works in its own declared scope. In multi-agent flows, use git worktrees to give each agent a fully isolated filesystem — no shared state, no stepping on each other.
+8. **Parallel waves.** Independent tasks run in parallel. Dependencies run sequentially. Resolved automatically from `needs:` in QUEUE.md.
 
-9. **Escalate, don't improvise.** If an agent hits something outside its scope or fails gates twice, it stops and surfaces to the human. It never silently works around a blocker.
+9. **Skip and continue.** If a task fails, mark it blocked, skip its dependents, continue with everything else. Never halt the whole loop for one failure.
 
-10. **Read before you write.** Before implementing, agents scan existing code for patterns, conventions, and style. New code must match what's already there. This is the recursive quality loop — good code trains better code.
+10. **Escalate, don't improvise.** If stuck, stop and ask — never silently work around.
+
+11. **Read before you write.** Agents scan existing code for patterns before touching anything. New code must match.
 
 ---
 
-## `/ship-code:init`
+## Queue-driven execution
 
-Sets up the project for anti-slop agentic development.
+The queue (`QUEUE.md`) is the single source of truth for what needs to happen:
 
-### What it does
+```markdown
+# Queue
 
-1. Creates `.ship/config.json` with project quality gate settings
-2. Installs pre-commit hook that runs gates before every commit
-3. Creates `.ship/issues.md` as the single source of truth for agent learnings/blockers
-4. Creates `.ship/HARD_BLOCKS.md` defining what agents can never do
-5. Detects stack (Node/Python/etc) and configures appropriate linting + type-checking
+## Doing
+- [ ] `auth/002` Add password reset
+- [ ] `auth/003` Add email verification
 
-### Hard blocks (default)
+## Next
+- [ ] `auth/004` Add OAuth providers → needs: auth/002, auth/003
 
-Written to `.ship/HARD_BLOCKS.md` and enforced via hook:
+## Blocked
+- [!] `auth/006` Add SAML SSO — type errors in SAML lib
 
-- **NEVER** `git push` — human reviews and pushes manually
-- **NEVER** modify files outside declared scope
-- **NEVER** delete tests to make gates pass
-- **NEVER** use `any` type or disable linting rules to make gates pass
-- **NEVER** commit with failing tests
+## Done
+- [x] `auth/001` Add JWT middleware → abc1234
+```
 
-### Config written to `.ship/config.json`
+The `ship-brain` agent reads this, resolves waves, and executes. After each wave, completed tasks are archived to `.ship/archive/`.
+
+---
+
+## Wave resolution
+
+ship-brain resolves waves automatically from QUEUE.md dependencies:
+
+1. Tasks with no `needs:` or all dependencies in `Done` → current wave (parallel)
+2. Tasks depending on current wave → next wave
+3. Tasks depending on blocked/skipped tasks → skipped
+4. Continue until queue is empty or all remaining tasks are blocked/skipped
+
+---
+
+## Config
+
+`.ship/config.json` controls workflow behavior:
 
 ```json
 {
-  "gates": {
-    "tests": true,
-    "lint": true,
-    "types": true,
-    "no_push": true
-  },
-  "stack": "auto-detected",
-  "issue_log": ".ship/issues.md",
-  "task_dir": ".ship/tasks/"
+  "workflow": {
+    "research_before_plan": true,
+    "parallel_waves": true,
+    "max_retries_per_spec": 2,
+    "skip_permissions": true,
+    "auto_archive_after_wave": true,
+    "skip_dependents_on_failure": true
+  }
 }
 ```
 
-### Hook installed to `.git/hooks/pre-commit`
-
-Runs: lint → types → tests. Blocks commit if any fail. Logs failures to `.ship/issues.md` with timestamp and task ID.
-
-### Traceability in commits
-
-Every commit message follows this format:
-```
-feat(ship-<task-id>): <title>
-
-agent: claude-code
-task: <spec-file-path>
-timestamp: <ISO timestamp>
-scope: <files modified>
-```
-
-This makes every change fully attributable — who (agent), what (task), when (timestamp), where (files).
-
-### Work tree isolation (multi-agent)
-
-For multi-agent flows, each agent gets its own git worktree:
-```bash
-git worktree add .ship/worktrees/<task-id> HEAD
-```
-Agent works in its worktree. Changes are merged back only after gates pass. Agents never share a working directory.
-
----
-
-## `/ship-code:plan <description>`
-
-The main workflow. Takes a plain-English description, produces atomic specs, executes them, commits each one.
-
-### Phase 1 — Decompose
-
-Agent analyzes the request and breaks it into atomic units following "one agent, one task, one prompt":
-
-- Each unit = one clear outcome
-- No task touches more than ~3 files
-- Dependencies between tasks are explicit
-- Scope is locked: files the task can and cannot touch
-
-Output: `.ship/tasks/<slug>/` directory with one spec file per unit.
-
-### Spec file format
-
-```xml
-<task>
-  <id>001</id>
-  <title>Short title</title>
-  <goal>What this task achieves in one sentence</goal>
-  <scope>
-    <can-modify>src/auth/login.ts, src/auth/types.ts</can-modify>
-    <cannot-modify>src/db/*, any test files not for this task</cannot-modify>
-  </scope>
-  <context>
-    Relevant snippets, line numbers, existing patterns to follow
-  </context>
-  <steps>
-    Precise numbered steps. No room for inference.
-  </steps>
-  <acceptance>
-    Exact conditions that must be true when done.
-    These become the verify checklist.
-  </acceptance>
-  <gates>lint, types, tests</gates>
-</task>
-```
-
-### Phase 2 — Execute
-
-For each spec file (sequentially by default, parallel if no dependencies):
-
-1. **Read before writing** — agent scans existing code in the target files for patterns, naming conventions, error handling style, and type patterns. New code must match. This is the recursive quality loop: good existing code produces better new code.
-2. Agent reads spec, declares scope out loud
-3. Implements changes
-4. Runs gates automatically
-5. If gates pass → atomic commit with full traceability: `feat(ship-<id>): <title>`
-6. If gates fail → diagnose root cause, log to `.ship/issues.md`, fix spec or context, rerun. **Never patch output.**
-7. If gates fail twice on the same spec → **stop, escalate to human.** Log the blocker. Do not attempt a third run with the same spec.
-
-### Phase 3 — Human verify
-
-After all tasks complete, agent presents:
-- What was built (summary per task)
-- Git log of atomic commits
-- Gate results
-- Open items logged to `.ship/issues.md`
-
-Human reviews. If something is wrong → `/ship-code:plan` again with a corrected description, or `/ship-code:run` to re-execute a single spec.
-
----
-
-## `/ship-code:run <spec-file>`
-
-Execute a single spec in isolation. Useful for re-running a failed task or executing a manually written spec.
-
-1. Reads the spec file
-2. Declares scope (files it will and won't touch)
-3. Implements
-4. Runs gates
-5. Commits if green, logs and halts if red
-
----
-
-## `/ship-code:verify`
-
-Run all quality gates and report status. Does not commit anything.
-
-Reports:
-- ✅ / ❌ Lint
-- ✅ / ❌ Type check  
-- ✅ / ❌ Tests (with count)
-- ✅ / ❌ No forbidden patterns (mocks audit, `any` usage, disabled rules)
-- Summary of `.ship/issues.md` open items
-
-If anything fails: identifies root cause category (bad spec, missing context, scope violation, environment issue) and suggests the fix.
-
----
-
-## `/ship-code:quick <description>`
-
-For small ad-hoc tasks that don't need decomposition. Same guarantees, less ceremony.
-
-1. Agent writes a single inline spec (not saved to disk)
-2. Implements in one shot
-3. Runs gates
-4. Commits if green
-
-Use for: bug fixes, renaming, config tweaks, one-liner additions.
-Do not use for: anything touching more than 3 files or with unclear scope.
+- `research_before_plan` — run research phase before planning
+- `parallel_waves` — execute independent tasks in parallel
+- `skip_permissions` — agents run with full permissions
+- `skip_dependents_on_failure` — skip tasks that depend on a blocked task
 
 ---
 
 ## Anti-slop diagnostics
 
-When output is wrong, use this decision tree before retrying:
-
 | Symptom | Root cause | Fix |
 |---|---|---|
-| Agent went off-scope | Scope wasn't explicit in spec | Add `<can-modify>` / `<cannot-modify>` to spec |
-| Agent made wrong assumptions | Spec left room for inference | Add context snippets, line numbers, examples |
-| Gates pass but feature is wrong | Acceptance criteria too vague | Rewrite `<acceptance>` with exact conditions |
-| Agent wrote excessive mocks | No-mock policy not in scope | Add explicit note in spec: "no mocks — use real X" |
-| Same mistake on retry | Bad spec, not bad agent | Rewrite the spec, don't retry with same spec |
-| Unrelated files modified | Scope not enforced | Use hard blocks + scope declaration |
+| Agent went off-scope | Scope not explicit | Add `<can-modify>` / `<cannot-modify>` to spec |
+| Wrong assumptions | Spec left room for inference | Add context snippets, line numbers |
+| Gates pass but feature wrong | Acceptance criteria vague | Rewrite `<acceptance>` with exact conditions |
+| Excessive mocks | No-mock policy missing | Add `<no-mocks>` to spec |
+| Same mistake on retry | Bad spec | Rewrite the spec, don't retry same spec |
 
-**Rule:** If you retry more than once with the same spec, the spec is the problem.
+**Rule:** If you retry the same spec twice and it fails twice, the spec is the problem.
 
 ---
 
@@ -299,40 +192,31 @@ When output is wrong, use this decision tree before retrying:
 
 ```
 .ship/
-├── config.json          # Gate settings, stack config
-├── HARD_BLOCKS.md        # What agents can never do
-├── issues.md            # Centralized agent learnings & blockers
-└── tasks/
-    └── <task-slug>/
-        ├── 001-spec.xml
-        ├── 002-spec.xml
-        └── summary.md   # Written after execution
-.git/hooks/
-└── pre-commit           # Gate enforcer
+├── config.json          # Settings
+├── QUEUE.md             # Task queue — the command center
+├── STATE.md             # Loop status at a glance
+├── HARD_BLOCKS.md       # What agents can never do
+├── issues.md            # Agent blockers & learnings
+├── tasks/               # Active spec files
+│   └── <task-slug>/
+│       ├── research.md
+│       ├── 001-<title>.xml
+│       └── 002-<title>.xml
+└── archive/             # Completed work
+    └── <YYYY-MM-DD>-<slug>/
+        ├── specs...
+        └── summary.md
 ```
 
 ---
 
-## Multi-agent notes
+## Escalation — when agents stop
 
-When chaining agents (e.g. planner → executor → reviewer):
-
-- Each agent gets its own isolated worktree — no shared filesystem state
-- Gates must pass at every handoff — never pass failing work downstream
-- Each agent's scope is locked before it starts
-- Reviewer agent reads spec + diff only — it does not re-read the whole codebase
-- Garbage in = garbage out. If upstream output is bad, fix upstream, don't compensate downstream
-
-### Chain of command — when to escalate
-
-Agents must stop and surface to the human (never silently work around) when:
-
-| Situation | Agent action |
+| Situation | Action |
 |---|---|
-| Task requires files outside declared scope | Stop. Log to `issues.md`. Ask human to update spec scope. |
-| Gates fail twice on the same spec | Stop. Log root cause. Human must rewrite the spec. |
-| Dependency between tasks is broken | Stop. Log blocker. Human decides how to reorder or fix. |
-| Unexpected codebase state changes the plan | Stop. Surface finding. Human decides whether to proceed. |
-| Hard block would be violated to complete the task | Stop. Never violate. Escalate. |
+| Task requires files outside scope | Stop. Log to issues.md. Ask human. |
+| Gates fail twice on same spec | Stop. Mark blocked. Skip dependents. Continue loop. |
+| Dependency broken | Skip task. Log. Continue. |
+| Hard block would be violated | Stop. Never violate. Escalate. |
 
-Escalation is not failure — it's the system working correctly. Silent workarounds are slop.
+Escalation is the system working correctly. Silent workarounds are slop.

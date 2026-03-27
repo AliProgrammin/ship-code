@@ -22,37 +22,50 @@ Print the ship-code quick-start guide and command reference.
 ```
 /ship-code:init
 ```
-Run this once. It sets up quality gates, pre-commit hooks, hard blocks, and the issue log.
-If it warns you about missing `lint` / `typecheck` / `test` scripts — add those to your project first.
+Sets up quality gates, hooks, config, queue, and hard blocks. Check `.ship/config.json` to toggle research, parallel waves, and other workflow settings.
 
-**Don't know how to approach a problem?**
+**Ship a feature (the full flow):**
 ```
-/ship-code:research how to handle auth in Next.js
+/ship-code:ship
 ```
-Claude searches best practices, analyzes your codebase, compares libraries, and saves a report to `.ship/research/`. Optionally suggests a `/ship-code:plan` to run next.
+Interviews you, researches (if enabled), plans into specs, executes in parallel waves, archives completed work. This is the main command.
 
-**Building a feature:**
+**Plan without executing:**
 ```
-/ship-code:plan add a login form with email + password validation
+/ship-code:plan add login with email + password
 ```
-The agent will decompose it into atomic specs, execute each one, and commit them individually.
-You review at the end. If something's wrong, tell the agent what's wrong — don't manually fix it.
+Decomposes into specs and populates the queue. Review specs, then `/ship-code:loop` to execute.
+
+**Check the queue:**
+```
+/ship-code:queue
+```
+
+**Resume execution:**
+```
+/ship-code:loop
+```
+Picks up from QUEUE.md where it left off.
 
 **Small fix or tweak:**
 ```
 /ship-code:quick rename UserCard to ProfileCard everywhere
 ```
-No ceremony. Gates still run. Still commits cleanly.
+No ceremony. Gates still run.
 
-**Check code quality anytime:**
+**Research before building:**
+```
+/ship-code:research how to handle auth in Next.js
+```
+
+**Check quality anytime:**
 ```
 /ship-code:verify
 ```
-Runs lint, types, tests, mock audit, and hard block scan. Shows you exactly what's wrong and why.
 
-**Re-run a specific failed task:**
+**Re-run a single spec:**
 ```
-/ship-code:run .ship/tasks/login-form/002-validation.xml
+/ship-code:run .ship/tasks/auth/001-jwt-middleware.xml
 ```
 
 ---
@@ -62,24 +75,39 @@ Runs lint, types, tests, mock audit, and hard block scan. Shows you exactly what
 | Command | When to use |
 |---|---|
 | `/ship-code:init` | Once per project, before anything else |
-| `/ship-code:research <problem>` | Before building — when you're unsure of the best approach |
-| `/ship-code:plan <description>` | Any non-trivial feature or change |
-| `/ship-code:ship` | Shipping multiple features or a big milestone at once |
-| `/ship-code:run <spec-file>` | Re-run a single spec after fixing it |
-| `/ship-code:verify` | Check quality gates at any time |
-| `/ship-code:quick <description>` | Small ad-hoc tasks (≤3 files) |
+| `/ship-code:ship` | Ship features — interview, research, plan, execute, archive |
+| `/ship-code:plan <desc>` | Plan a feature into specs + queue |
+| `/ship-code:loop` | Resume execution from the queue |
+| `/ship-code:queue` | Show, add, or reorder tasks |
+| `/ship-code:run <spec>` | Re-run a single spec |
+| `/ship-code:research <problem>` | Research before building |
+| `/ship-code:verify` | Run all quality gates |
+| `/ship-code:quick <desc>` | Small ad-hoc task (≤3 files) |
 | `/ship-code:help` | Show this guide |
 
 ---
 
-## The golden rules
+## Your dashboard
 
-1. **Never fix bad output.** If the agent wrote garbage, reset and fix the spec — not the code.
-2. **One agent, one task, one prompt.** Focused agents are correct agents.
-3. **Gates before everything.** Lint + types + tests must pass 100% before any commit or handoff.
-4. **Never mock what you can use for real.** Mocks hide failures. Real integrations surface them.
-5. **Precise specs, zero inference.** Agents don't guess. You tell them exactly what to do.
-6. **Never push manually.** Let the agent commit. You push after reviewing.
+Two files you'll check most:
+
+- **`.ship/QUEUE.md`** — what's doing, next, blocked, done
+- **`.ship/STATE.md`** — loop status at a glance
+
+## Config (`.ship/config.json`)
+
+```json
+{
+  "workflow": {
+    "research_before_plan": true,   ← toggle research phase
+    "parallel_waves": true,         ← run independent tasks in parallel
+    "max_retries_per_spec": 2,      ← attempts before marking blocked
+    "skip_permissions": true,       ← agents run with full permissions
+    "auto_archive_after_wave": true, ← move done tasks to archive/
+    "skip_dependents_on_failure": true ← skip tasks that depend on blocked
+  }
+}
+```
 
 ---
 
@@ -87,36 +115,37 @@ Runs lint, types, tests, mock audit, and hard block scan. Shows you exactly what
 
 ```
 .ship/
-├── config.json       ← gate settings & stack config
+├── config.json       ← settings
+├── QUEUE.md          ← task queue (your command center)
+├── STATE.md          ← loop status
 ├── HARD_BLOCKS.md    ← what agents can never do
-├── issues.md         ← centralized log of agent blockers & learnings
-└── tasks/            ← spec files live here after /ship-code:plan
-.git/hooks/
-└── pre-commit        ← gate enforcer (runs on every commit)
+├── issues.md         ← agent blockers & learnings
+├── tasks/            ← active spec files
+└── archive/          ← completed work
 ```
 
 ---
 
 ## When something goes wrong
 
-| Symptom | Don't do this | Do this |
-|---|---|---|
-| Agent went off-scope | Manually revert | Tighten `<can-modify>` in spec, rerun |
-| Wrong assumptions made | Patch the output | Add context/snippets to spec, rerun |
-| Gates pass but feature is broken | Manually fix | Rewrite `<acceptance>` criteria, rerun |
-| Excessive mocks in tests | Delete the mocks | Add "no mocks — use real X" to spec, rerun |
-| Same failure on retry | Retry again | The spec is the problem — rewrite it |
+| Symptom | Fix |
+|---|---|
+| Agent went off-scope | Tighten `<can-modify>` in spec, rerun |
+| Wrong assumptions | Add context/snippets to spec, rerun |
+| Gates pass but feature broken | Rewrite `<acceptance>` criteria, rerun |
+| Excessive mocks | Add "no mocks — use real X" to spec, rerun |
+| Same failure on retry | The spec is the problem — rewrite it |
 
-**Rule: if you retry the same spec twice and it fails twice, stop and rewrite the spec.**
+**Rule: if a spec fails twice, rewrite the spec.**
 
 ---
 
-## Escalation (when to stop and ask the human)
+## Escalation
 
-The agent should stop and surface to you when:
-- A task requires modifying files outside its declared scope
-- Gates are failing after 2 reruns of the same spec
-- A dependency between tasks is broken and blocks execution
-- Something unexpected is found in the codebase that changes the plan
+The agent stops and asks you when:
+- Task requires files outside its declared scope
+- Gates fail twice on the same spec
+- A dependency is broken
+- Something unexpected changes the plan
 
-The agent should NOT silently work around these — it logs to `.ship/issues.md` and waits.
+Agents log to `.ship/issues.md` and wait. They never silently work around blockers.

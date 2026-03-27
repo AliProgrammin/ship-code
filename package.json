@@ -1,0 +1,30 @@
+{
+  "name": "ship-code",
+  "version": "1.0.0",
+  "description": "Anti-slop agentic coding workflow for Claude Code",
+  "type": "module",
+  "bin": {
+    "ship-code": "bin/install.js"
+  },
+  "files": [
+    "bin",
+    "commands",
+    "agents"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "ai",
+    "workflow",
+    "quality-gates"
+  ],
+  "author": "aliprogrammin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aliprogrammin/ship-code"
+  }
+}
