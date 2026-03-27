@@ -1,6 +1,6 @@
 {
   "name": "ship-code",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Anti-slop agentic coding workflow for Claude Code",
   "type": "module",
   "bin": {
