@@ -1,72 +1,48 @@
 ---
-description: "Run all quality gates and report results — lint, types, tests, mock audit"
+description: "Run the evaluator — graded code review with rubric scoring"
 ---
 
-> **Context rule:** Delegates all work to the `ship-verifier` subagent. The main context only receives the gate report.
+> **Context rule:** Delegates all work to the `ship-evaluator` subagent. The main context only receives the evaluation report.
 
 # /ship-code:verify
 
-Run all quality gates and report status. Does not commit or modify anything.
+Run the evaluator on the most recent changes. Gets a graded code review, not just pass/fail gates.
 
----
+Usage: `/ship-code:verify`
 
 ## Steps
 
-1. **Run gates**
+1. Spawn `ship-evaluator` agent
 
-   Node/TS:
-   ```bash
-   npm run lint
-   npm run typecheck
-   npm test
-   ```
+2. Evaluator:
+   - Reads the git diff (last commit)
+   - Runs quality gates (lint, types, tests)
+   - Checks for mock abuse and hard block violations
+   - Scores on 5 dimensions (1-5 scale):
+     - **Correctness** — does it work?
+     - **Design** — does it fit existing patterns?
+     - **Code quality** — is it clean and readable?
+     - **Test quality** — are tests meaningful?
+     - **Security** — is it safe?
 
-   Python:
-   ```bash
-   ruff check .
-   mypy .
-   pytest
-   ```
+3. Show the evaluation report:
 
-2. **Run anti-mock audit**
+```
+ship-code evaluation
+──────────────────────────────────
+Correctness  <score>/5  <justification>
+Design       <score>/5  <justification>
+Code quality <score>/5  <justification>
+Test quality <score>/5  <justification>
+Security     <score>/5  <justification>
 
-   Scan test files for patterns indicating excessive mocking:
-   - `jest.mock(` / `vi.mock(` calls that mock internal modules (not external services)
-   - `MagicMock` / `patch` wrapping non-external code in Python
-   - Tests with more mock setup lines than assertion lines
+Average: <N>/5
+Verdict: SHIP | REVISE | REJECT
 
-   Flag any found. Note: mocking external services (HTTP, DB, email) is fine. Mocking your own code is a smell.
+Gates:
+  Lint   pass/fail
+  Types  pass/fail
+  Tests  pass/fail
 
-3. **Check hard blocks**
-
-   Scan recent commits (since last human push) for violations:
-   - Any `git push` in commit hooks
-   - `@ts-ignore` or `eslint-disable` added
-   - `any` type introduced
-   - Tests deleted or skipped (`test.skip`, `pytest.mark.skip`)
-
-4. **Report**
-
-   ```
-   ship-code gate report
-   ──────────────────────
-   Lint        ✅ / ❌  (<N> errors)
-   Types       ✅ / ❌  (<N> errors)
-   Tests       ✅ / ❌  (<N> passing, <N> failing)
-   Mock audit  ✅ / ⚠️  (<N> suspicious mocks flagged)
-   Hard blocks ✅ / ❌  (<violations if any>)
-
-   Open issues in .ship/issues.md: <N>
-   ```
-
-5. **If anything failed**, identify root cause category:
-
-   | Failure | Likely root cause |
-   |---|---|
-   | Lint errors | Spec didn't specify code style / agent ignored conventions |
-   | Type errors | Spec missing type context, or agent used `any` as shortcut |
-   | Test failures | Acceptance criteria were vague, or scope leaked |
-   | Excessive mocks | Spec didn't say "use real X" explicitly |
-   | Hard block violation | Scope not enforced, spec too loose |
-
-   Recommend: fix the spec, not the output.
+<feedback if REVISE or REJECT>
+```

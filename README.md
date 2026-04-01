@@ -1,6 +1,6 @@
 # ship-code
 
-Anti-slop agentic coding workflow for Claude Code. No enterprise theater. Just the practices that actually prevent garbage from entering your codebase.
+Anti-slop agentic coding workflow for Claude Code. 3 agents, no enterprise theater.
 
 **Core philosophy:** Slop is an engineering problem, not an LLM problem. If an agent produces bad code, fix the environment — never patch the output.
 
@@ -23,14 +23,13 @@ npx ship-code@latest --uninstall # remove
 
 | Command | What it does |
 |---|---|
-| `/ship-code:init` | Set up hooks, gates, config, queue, and hard blocks |
-| `/ship-code:ship` | Full flow — interview, research, plan, execute in waves, archive |
-| `/ship-code:plan <desc>` | Decompose a feature into specs and populate the queue |
-| `/ship-code:loop` | Resume execution from the queue |
-| `/ship-code:queue` | Show, add, or reorder tasks |
-| `/ship-code:run <spec>` | Execute a single spec file |
-| `/ship-code:research <problem>` | Research before building |
-| `/ship-code:verify` | Run all quality gates |
+| `/ship-code:init` | Set up hooks, gates, config, and hard blocks |
+| `/ship-code:ship` | Full flow — interview, plan, generator-evaluator loops |
+| `/ship-code:plan <desc>` | Create feature briefs for what to build |
+| `/ship-code:loop` | Resume execution from the plan |
+| `/ship-code:queue` | Show plan status or add features |
+| `/ship-code:run <feature>` | Run one feature through generator-evaluator |
+| `/ship-code:verify` | Run graded quality evaluation |
 | `/ship-code:quick <desc>` | Small ad-hoc task — gates still enforced |
 | `/ship-code:help` | Show the guide |
 
@@ -40,86 +39,97 @@ npx ship-code@latest --uninstall # remove
 You describe what to build
         │
         ▼
-  /ship-code:ship interviews you
+  Interview — what, why, constraints
         │
         ▼
-  Research phase (if enabled in config)
+  Planner creates feature briefs
+  (goals + requirements, NOT implementation steps)
         │
         ▼
-  Planner decomposes into atomic specs
-  with explicit dependencies
-        │
-        ▼
-  Specs populate QUEUE.md
-  Dependencies → parallel waves
-        │
-        ▼
-  ship-brain resolves waves and
-  spawns executor agents in parallel
-        │
-        ▼
-  Each executor: implement → gates → commit
-        │
-        ▼
-  Wave done → archive completed tasks
-  Failed? → mark blocked, skip dependents, continue
-        │
-        ▼
-  Next wave until queue empty
+  For each feature:
+  ┌─────────────────────────┐
+  │  Generator-Evaluator    │
+  │  Loop (max 3 rounds)    │
+  │                         │
+  │  Generator: explores    │
+  │  codebase, implements,  │
+  │  runs gates, commits    │
+  │         ↓               │
+  │  Evaluator: scores on   │
+  │  5 dimensions (1-5)     │
+  │         ↓               │
+  │  Score < 3? → revise    │
+  │  Score >= 3? → ship     │
+  └─────────────────────────┘
         │
         ▼
   You review. Push when ready.
 ```
 
-## Your Dashboard
+## The 3 Agents
 
-Two files you'll check most:
+| Agent | Role |
+|---|---|
+| **Planner** | Creates feature briefs — what + why, never how |
+| **Generator** | Autonomous builder — explores, decides, implements |
+| **Evaluator** | Adversarial reviewer — graded rubric, not pass/fail |
 
-- **`.ship/QUEUE.md`** — what's doing, next, blocked, done
-- **`.ship/STATE.md`** — loop status at a glance
+### Why only 3?
+
+Modern AI models don't need micro-managed specs with line numbers and step-by-step instructions. They need:
+- **Clear goals** (Planner)
+- **Autonomy to implement** (Generator)
+- **Adversarial quality checks** (Evaluator)
+
+Everything else — complex queue systems, XML task specs, separate research agents, wave orchestration, sprint contracts — is dead weight that actually limits the model's ability to self-correct.
+
+## Evaluator Rubric
+
+Every feature gets scored 1-5 on:
+
+| Dimension | What it measures |
+|---|---|
+| **Correctness** | Does it meet requirements? |
+| **Design** | Does it fit existing patterns? |
+| **Code quality** | Is it clean and readable? |
+| **Test quality** | Are tests meaningful? |
+| **Security** | Is it safe? |
+
+- All >= 3 → **SHIP**
+- Any = 2 → **REVISE** (generator gets specific feedback)
+- Any = 1 → **REJECT** (generator redoes from scratch)
 
 ## Config
 
-`.ship/config.json` controls workflow behavior:
+`.ship/config.json`:
 
 ```json
 {
   "workflow": {
-    "research_before_plan": true,
-    "parallel_waves": true,
-    "max_retries_per_spec": 2,
-    "skip_permissions": true,
-    "auto_archive_after_wave": true,
-    "skip_dependents_on_failure": true
+    "parallel_features": true,
+    "max_eval_rounds": 3,
+    "skip_permissions": true
   }
 }
 ```
 
 ## The Golden Rules
 
-1. **Never fix bad output.** Reset and fix the spec — not the code.
-2. **One agent, one task, one prompt.** Focused agents are correct agents.
-3. **Gates before everything.** Lint + types + tests must pass 100% before any commit.
-4. **Never mock what you can use for real.** Mocks hide failures.
-5. **Precise specs, zero inference.** Agents don't guess.
-6. **Skip and continue.** Failed tasks don't halt the loop — they get blocked, dependents skipped.
-7. **Escalate, don't improvise.** If stuck, stop and ask — never silently work around.
+1. **Never fix bad output.** Reset and fix the brief — not the code.
+2. **3 agents, 3 roles.** Planner plans, generator builds, evaluator reviews.
+3. **Gates before everything.** Lint + types + tests pass 100% before any commit.
+4. **Quality is graded, not binary.** Passing gates is the floor, not the ceiling.
+5. **Generator decides the how.** Briefs say what and why. Implementation is autonomous.
+6. **Escalate, don't improvise.** If stuck, stop and ask.
 
 ## File Structure After `/ship-code:init`
 
 ```
 .ship/
 ├── config.json        # Settings
-├── QUEUE.md           # Task queue (your command center)
-├── STATE.md           # Loop status
 ├── HARD_BLOCKS.md     # What agents can never do
 ├── issues.md          # Agent blockers & learnings
-├── tasks/             # Active spec files
-│   └── <task-slug>/
-│       └── 001-<title>.xml
-└── archive/           # Completed work
-    └── <YYYY-MM-DD>-<slug>/
-        └── summary.md
+└── plan.md            # Feature briefs (created during /ship-code:ship or /ship-code:plan)
 ```
 
 ## License

@@ -1,40 +1,40 @@
 ---
-description: "Execute a single existing spec file in isolation"
-argument-hint: "<path-to-spec.xml>"
+description: "Run the generator-evaluator loop on a single feature from the plan"
+argument-hint: "<feature number or title>"
 ---
 
-> **Context rule:** Delegates all work to a `ship-executor` subagent. The main context only receives the result.
+> **Context rule:** Delegates work to generator and evaluator subagents. The main context only receives the result.
 
 # /ship-code:run
 
-Execute a single spec file in isolation.
+Run the generator-evaluator loop on a single feature.
 
-Usage: `/ship-code:run <path-to-spec.xml>` or `/ship-code:run <task-slug/NNN>`
+Usage: `/ship-code:run <feature number>` or `/ship-code:run <feature title>`
 
 Use when:
-- Re-running a failed task after fixing the spec
-- Executing a manually written spec
-- Running one task from the queue in isolation
+- Retrying a blocked feature after fixing the issue
+- Running one feature from the plan in isolation
+- Testing a single feature before running the full loop
 
 ---
 
 ## Steps
 
-1. Read the spec file
-2. Spawn `ship-executor` agent with the spec
-3. Executor implements, runs gates, commits if green
-4. Update QUEUE.md — move task to `Done` if success, `Blocked` if failure
-5. Update STATE.md
-6. Report result to user
+1. Read `.ship/plan.md`, find the specified feature
+2. Spawn a `ship-generator` agent with the feature brief
+3. If generator succeeds → spawn a `ship-evaluator` agent to review
+4. If evaluator says SHIP → update plan status to `shipped`, report success
+5. If evaluator says REVISE/REJECT → re-spawn generator with feedback (max 3 rounds)
+6. If generator fails → update plan status to `blocked`, report failure
 
 If success:
 ```
-✓ <id> <title> → <commit-hash>
+<title> → <commit-hash> (eval: <score>/5)
 ```
 
 If failure:
 ```
-✗ <id> <title> — <reason>
+<title> — <reason>
   See .ship/issues.md
-  Fix the spec and run again: /ship-code:run <path>
+  Fix the issue and run again: /ship-code:run <feature>
 ```

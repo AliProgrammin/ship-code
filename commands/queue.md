@@ -1,51 +1,40 @@
 ---
-description: "Show, add, or reorder tasks in the ship queue"
-argument-hint: "[show | add <description> | reorder]"
+description: "Show the current plan status — what's shipped, pending, or blocked"
+argument-hint: "[show | add <description>]"
 ---
 
 # /ship-code:queue
 
-Manage the task queue without starting execution.
+View or modify the ship plan.
 
 Usage:
-- `/ship-code:queue` or `/ship-code:queue show` — display current queue
-- `/ship-code:queue add <description>` — add a task to the queue
-- `/ship-code:queue reorder` — interactively reprioritize
+- `/ship-code:queue` or `/ship-code:queue show` — display current plan status
+- `/ship-code:queue add <description>` — add a feature to the plan
 
 ## show (default)
 
-Read `.ship/QUEUE.md` and `.ship/STATE.md`. Print a clean summary:
+Read `.ship/plan.md`. Print a clean summary:
 
 ```
-Queue — wave 2/4
+Plan status
 
-  Doing (2):
-    auth/002  Add password reset
-    auth/003  Add email verification
+  Shipped (2):
+    1. Add JWT middleware → abc1234
+    2. Add auth types → def5678
 
-  Next (2):
-    auth/004  Add OAuth providers → needs: auth/002, auth/003
-    auth/005  Add session management → needs: auth/004
+  Pending (2):
+    3. Add password reset
+    4. Add OAuth providers → depends on 3
 
   Blocked (1):
-    auth/006  Add SAML SSO — type errors in SAML lib
-
-  Done (3):
-    auth/001  Add JWT middleware → abc1234
-    setup/001 Initialize auth module → def5678
-    setup/002 Add auth types → ghi9012
+    5. Add SAML SSO — type errors in SAML lib
 ```
 
 ## add
 
 When the user runs `/ship-code:queue add <description>`:
 
-1. Determine the task slug and next available ID from existing tasks in QUEUE.md
-2. Ask the user: "Does this depend on any existing task?" — show the current task list for reference
-3. Add to the `Next` section of QUEUE.md with the right `needs:` if any
-4. Do NOT create a spec file yet — that happens when `/ship-code:loop` or `/ship-code:ship` runs the planner
-5. Confirm: "Added `<slug>/<id>` to queue. Run `/ship-code:loop` to execute."
-
-## reorder
-
-Show the current `Next` section and ask the user how they want to reorder. Update QUEUE.md accordingly. Warn if reordering would break dependency chains.
+1. Read `.ship/plan.md` to find the next feature number
+2. Ask: "Does this depend on any existing feature?" — show current features for reference
+3. Add a new feature brief section to `.ship/plan.md` with status `pending`
+4. Confirm: "Added feature <N> to plan. Run `/ship-code:loop` to execute."

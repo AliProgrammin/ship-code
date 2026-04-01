@@ -4,7 +4,7 @@ argument-hint: "<description>"
 ---
 # /ship-code:quick
 
-Ad-hoc task with no ceremony. Same quality guarantees, no spec files saved.
+Ad-hoc task with no ceremony. Same quality guarantees, no plan files.
 
 Usage: `/ship-code:quick <description>`
 
@@ -17,18 +17,12 @@ Not for: anything touching more than 3 files, or anything with unclear scope.
 
 1. **Scope check** — if the task seems to touch more than 3 files or has unclear boundaries, stop and suggest `/ship-code:plan` instead.
 
-2. **Write an inline spec** (not saved to disk):
-   - Goal (one sentence)
-   - Files to modify (explicit list)
-   - Steps (concrete, no inference)
-   - Acceptance criteria
+2. **Implement** — explore the codebase, understand the patterns, make the change. Match existing conventions.
 
-3. **Implement**
+3. **Run gates** — same as always: lint → types → tests
 
-4. **Run gates** — same as always: lint → types → tests
+4. **If green** → commit: `fix(ship): <short description>`
 
-5. **If green** → commit: `fix(ship): <short description>`
-
-6. **If red** → diagnose root cause, rewrite the inline spec, rerun from scratch. Never patch.
+5. **If red** → diagnose root cause, fix, retry. If stuck after 3 attempts, stop and tell the user what's wrong.
 
 **Hard blocks still apply.** Quick mode doesn't bypass any gates or blocks.

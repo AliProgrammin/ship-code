@@ -1,5 +1,5 @@
 ---
-description: "Decompose a feature into atomic specs with dependencies and populate the queue"
+description: "Create feature briefs for what to build — high-level goals, not implementation steps"
 argument-hint: "<description of what to build>"
 ---
 
@@ -7,37 +7,32 @@ argument-hint: "<description of what to build>"
 
 # /ship-code:plan
 
-Decompose a feature into atomic specs, populate QUEUE.md with dependencies, and optionally execute.
+Create feature briefs describing what to build. The generator figures out implementation.
 
 Usage: `/ship-code:plan <plain English description of what to build>`
 
 ## Steps
 
-1. Check `.ship/config.json` → `workflow.research_before_plan`
-   - If `true`: spawn `ship-researcher` first, save output to `.ship/tasks/<slug>/research.md`
-   - If `false`: skip to planning
+1. Spawn `ship-planner` agent with the feature description
 
-2. Spawn `ship-planner` agent with the feature description (and research if it exists)
+2. Planner reads the codebase, creates feature briefs in `.ship/plan.md`
 
-3. Planner decomposes → creates spec files in `.ship/tasks/<slug>/` → populates QUEUE.md
-
-4. Show the user the plan summary:
+3. Show the user the plan summary:
 
 ```
 Plan ready
 
-Tasks:
-  001 <title> — wave 1
-  002 <title> — wave 1
-  003 <title> — wave 2, needs: 001, 002
+Features:
+  1. <title> — <one-line goal>
+  2. <title> — <one-line goal>
+  3. <title> — depends on 1
 
-Specs: .ship/tasks/<slug>/
-Queue: .ship/QUEUE.md
+Plan: .ship/plan.md
 
-👉 Run /ship-code:loop to execute
-   Or /ship-code:run .ship/tasks/<slug>/001-<title>.xml for a single task
+Run /ship-code:loop to execute
+Or edit .ship/plan.md to adjust before executing
 ```
 
-5. Ask the user: "Want me to start executing? Or review the specs first?"
-   - If yes → spawn `ship-brain` to run the loop
+4. Ask the user: "Want me to start executing? Or review the plan first?"
+   - If yes → spawn `ship-brain` to run generator-evaluator loops
    - If review → wait for user to come back with `/ship-code:loop`

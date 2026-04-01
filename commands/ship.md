@@ -1,12 +1,12 @@
 ---
-description: "Ship features — interview, research, plan, execute in parallel waves, archive"
+description: "Ship features — interview, plan into feature briefs, run generator-evaluator loops"
 ---
 
 > **Context rule:** Interview happens in main context. Everything else delegates to subagents. Main context stays clean.
 
 # /ship-code:ship
 
-The full shipping flow. Interview the user, research (if enabled), plan into specs, execute in parallel waves, archive completed work.
+The full shipping flow. Interview the user, plan into feature briefs, run generator-evaluator loops, report what shipped.
 
 Usage: `/ship-code:ship`
 
@@ -31,53 +31,45 @@ Ship plan
 ═══════════════════════════════
 
 Features:
-  1. <title>
-  2. <title>
-  3. <title>
+  1. <title> — <one-line goal>
+  2. <title> — <one-line goal>
+  3. <title> — depends on 1
 
-Research: <on / off> (config: workflow.research_before_plan)
-Parallel waves: <on / off>
-Gates: lint + types + tests after every task
+Parallel: features without dependencies run simultaneously
+Quality: generator-evaluator loop with graded rubrics (1-5)
+Gates: lint + types + tests after every feature
 
 Go? Say 'go' to start, or tell me what to adjust.
 ```
 
 Wait for confirmation.
 
-## Step 3 — Research (if enabled)
-
-Check `.ship/config.json` → `workflow.research_before_plan`.
-
-If `true`: spawn `ship-researcher` agent for the overall problem. Research output saves to `.ship/tasks/<slug>/research.md`. The planner will read it.
-
-If `false`: skip straight to planning.
-
-## Step 4 — Plan
+## Step 3 — Plan
 
 Spawn `ship-planner` agent with:
 - The confirmed feature descriptions
-- Research output (if research ran)
-- Instructions to populate QUEUE.md with dependencies
+- Instructions to create feature briefs (not implementation specs)
+- Save to `.ship/plan.md`
 
 The planner:
-1. Reads the codebase
-2. Decomposes into atomic specs → `.ship/tasks/<slug>/`
-3. Populates `.ship/QUEUE.md` with all tasks and `needs:` dependencies
-4. Returns a summary of specs created
+1. Reads the codebase for context
+2. Writes feature briefs with goals, requirements, quality bar, acceptance criteria
+3. Returns a summary
 
-## Step 5 — Execute loop
+## Step 4 — Execute
 
 Spawn `ship-brain` agent.
 
 ship-brain:
-1. Reads QUEUE.md
-2. Resolves dependency waves
-3. Executes waves in parallel (one `ship-executor` per task)
-4. After each wave: archive completed, update QUEUE.md and STATE.md
-5. If a task fails: mark blocked, skip its dependents, continue
-6. Returns consolidated summary
+1. Reads `.ship/plan.md`
+2. Groups features by dependencies
+3. For each feature: runs a generator-evaluator loop
+   - Generator explores codebase, implements, runs gates, commits
+   - Evaluator reviews with graded rubric (correctness, design, code quality, test quality, security)
+   - If evaluator rejects/requests revision → generator iterates (max 3 rounds)
+4. Returns consolidated summary
 
-## Step 6 — Summary
+## Step 5 — Summary
 
 Show the user what shipped:
 
@@ -86,28 +78,27 @@ Ship complete
 ═══════════════════════════════
 
 Shipped:
-  ✓ <id> <title> → <hash>
-  ✓ <id> <title> → <hash>
+  <title> → <hash> (eval: <score>/5)
+  <title> → <hash> (eval: <score>/5)
 
 Blocked:
-  ✗ <id> <title> — <reason>
+  <title> — <reason>
 
 Skipped:
-  ⊘ <id> <title> → needs <blocked-id>
+  <title> → depends on blocked feature
 
-Gates: lint ✅ types ✅ tests ✅
-Archives: .ship/archive/<date>-<slug>/
+Gates: lint + types + tests passed
 Issues: .ship/issues.md
 
-👉 Review the work above.
-   Push when ready: git push
-   Fix blocked specs and run /ship-code:loop to retry.
+Review the commits above.
+Push when ready: git push
+Fix blocked features and run /ship-code:loop to retry.
 ```
 
 ## Rules
 
 - **Gates never skipped** regardless of how much is left
 - **Never push** — user pushes after review
-- **Research is controlled by config** — not a per-run decision
+- **Evaluator scores quality** — passing gates is the floor, not the ceiling
 - **Hard blocks always apply**
-- **If the plan has 20+ tasks**, warn the user and suggest breaking into multiple ship sessions
+- **If the plan has 10+ features**, warn the user and suggest breaking into multiple ship sessions

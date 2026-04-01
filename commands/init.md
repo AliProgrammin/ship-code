@@ -1,9 +1,9 @@
 ---
-description: "Set up hooks, gates, config, and hard blocks for this project"
+description: "Set up gates, config, and hard blocks for this project"
 ---
 # /ship-code:init
 
-Set up this project for anti-slop agentic development.
+Set up this project for ship-code.
 
 ## Steps
 
@@ -25,49 +25,20 @@ Set up this project for anti-slop agentic development.
      },
      "stack": "<detected>",
      "issue_log": ".ship/issues.md",
-     "task_dir": ".ship/tasks/",
-     "archive_dir": ".ship/archive/",
      "workflow": {
-       "research_before_plan": true,
-       "parallel_waves": true,
-       "max_retries_per_spec": 2,
-       "skip_permissions": true,
-       "auto_archive_after_wave": true,
-       "skip_dependents_on_failure": true
+       "parallel_features": true,
+       "max_eval_rounds": 3,
+       "skip_permissions": true
      }
    }
-   ```
-
-   Create `.ship/QUEUE.md`:
-   ```markdown
-   # Queue
-
-   ## Doing
-
-   ## Next
-
-   ## Blocked
-
-   ## Done
-   ```
-
-   Create `.ship/STATE.md`:
-   ```markdown
-   # State
-
-   loop: idle
-   wave: 0/0
-   done: 0 | active: 0 | blocked: 0 | queued: 0
-
-   last: none
    ```
 
    Create `.ship/issues.md`:
    ```markdown
    # Issues
 
-   | Date | Task | Issue | Root Cause | Resolution |
-   |------|------|-------|------------|------------|
+   | Date | Feature | Issue | Root Cause | Resolution |
+   |------|---------|-------|------------|------------|
    ```
 
    Create `.ship/HARD_BLOCKS.md`:
@@ -75,17 +46,11 @@ Set up this project for anti-slop agentic development.
    # Hard Blocks
 
    - NEVER `git push` — human reviews and pushes manually
-   - NEVER modify files outside declared task scope
-   - NEVER delete or skip tests to make gates pass
    - NEVER use `any` type or `@ts-ignore` to silence type errors
    - NEVER disable lint rules (`eslint-disable`, `# noqa`) to make gates pass
-   - NEVER commit with a failing test
-   - NEVER fix bad agent output directly — reset and fix the spec instead
+   - NEVER delete or skip tests to make gates pass
+   - NEVER commit with failing tests
    ```
-
-   Create `.ship/tasks/` directory (empty, with `.gitkeep`)
-
-   Create `.ship/archive/` directory (empty, with `.gitkeep`)
 
 3. **Install pre-commit hook**
 
@@ -125,7 +90,7 @@ Set up this project for anti-slop agentic development.
    - Stack detected
    - Files created (list them)
    - Gates configured
-   - Workflow settings (research enabled, parallel waves, etc.)
+   - Workflow settings
    - Any gate commands that need to be added to `package.json` / `pyproject.toml` if missing
 
    If gate commands are missing from the project, tell the user exactly what to add — don't silently skip gates.

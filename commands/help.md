@@ -22,21 +22,21 @@ Print the ship-code quick-start guide and command reference.
 ```
 /ship-code:init
 ```
-Sets up quality gates, hooks, config, queue, and hard blocks. Check `.ship/config.json` to toggle research, parallel waves, and other workflow settings.
+Sets up quality gates, hooks, config, and hard blocks.
 
 **Ship a feature (the full flow):**
 ```
 /ship-code:ship
 ```
-Interviews you, researches (if enabled), plans into specs, executes in parallel waves, archives completed work. This is the main command.
+Interviews you, plans into feature briefs, runs generator-evaluator loops with graded quality scoring. This is the main command.
 
 **Plan without executing:**
 ```
 /ship-code:plan add login with email + password
 ```
-Decomposes into specs and populates the queue. Review specs, then `/ship-code:loop` to execute.
+Creates feature briefs in `.ship/plan.md`. Review, then `/ship-code:loop` to execute.
 
-**Check the queue:**
+**Check plan status:**
 ```
 /ship-code:queue
 ```
@@ -45,7 +45,7 @@ Decomposes into specs and populates the queue. Review specs, then `/ship-code:lo
 ```
 /ship-code:loop
 ```
-Picks up from QUEUE.md where it left off.
+Picks up unfinished features from the plan.
 
 **Small fix or tweak:**
 ```
@@ -53,19 +53,15 @@ Picks up from QUEUE.md where it left off.
 ```
 No ceremony. Gates still run.
 
-**Research before building:**
-```
-/ship-code:research how to handle auth in Next.js
-```
-
-**Check quality anytime:**
+**Run quality evaluation:**
 ```
 /ship-code:verify
 ```
+Graded rubric review (1-5 scale) — not just pass/fail.
 
-**Re-run a single spec:**
+**Run a single feature:**
 ```
-/ship-code:run .ship/tasks/auth/001-jwt-middleware.xml
+/ship-code:run 1
 ```
 
 ---
@@ -75,53 +71,70 @@ No ceremony. Gates still run.
 | Command | When to use |
 |---|---|
 | `/ship-code:init` | Once per project, before anything else |
-| `/ship-code:ship` | Ship features — interview, research, plan, execute, archive |
-| `/ship-code:plan <desc>` | Plan a feature into specs + queue |
-| `/ship-code:loop` | Resume execution from the queue |
-| `/ship-code:queue` | Show, add, or reorder tasks |
-| `/ship-code:run <spec>` | Re-run a single spec |
-| `/ship-code:research <problem>` | Research before building |
-| `/ship-code:verify` | Run all quality gates |
-| `/ship-code:quick <desc>` | Small ad-hoc task (≤3 files) |
+| `/ship-code:ship` | Ship features — interview, plan, generator-evaluator loops |
+| `/ship-code:plan <desc>` | Plan features into briefs |
+| `/ship-code:loop` | Resume execution from the plan |
+| `/ship-code:queue` | Show plan status or add features |
+| `/ship-code:run <feature>` | Run a single feature through generator-evaluator |
+| `/ship-code:verify` | Run graded quality evaluation |
+| `/ship-code:quick <desc>` | Small ad-hoc task (3 files max) |
 | `/ship-code:help` | Show this guide |
 
 ---
 
-## Your dashboard
+## How it works
 
-Two files you'll check most:
+```
+You describe what to build
+        │
+        ▼
+  Interview — what, why, constraints
+        │
+        ▼
+  Planner creates feature briefs
+  (goals + requirements, NOT implementation steps)
+        │
+        ▼
+  For each feature:
+  Generator-Evaluator loop
+        │
+        ├── Generator explores codebase
+        │   Makes implementation decisions
+        │   Builds feature, runs gates, commits
+        │
+        ├── Evaluator reviews with graded rubric
+        │   Scores: correctness, design, code quality,
+        │   test quality, security (1-5 each)
+        │
+        └── If score < 3 on any dimension → revise
+            Max 3 rounds, then escalate
+        │
+        ▼
+  You review. Push when ready.
+```
 
-- **`.ship/QUEUE.md`** — what's doing, next, blocked, done
-- **`.ship/STATE.md`** — loop status at a glance
+---
+
+## The 3 core agents
+
+| Agent | Role |
+|---|---|
+| **Planner** | Creates feature briefs (what + why, not how) |
+| **Generator** | Autonomous builder — explores, decides, implements |
+| **Evaluator** | Adversarial reviewer — graded rubric, not pass/fail |
+
+---
 
 ## Config (`.ship/config.json`)
 
 ```json
 {
   "workflow": {
-    "research_before_plan": true,   ← toggle research phase
-    "parallel_waves": true,         ← run independent tasks in parallel
-    "max_retries_per_spec": 2,      ← attempts before marking blocked
-    "skip_permissions": true,       ← agents run with full permissions
-    "auto_archive_after_wave": true, ← move done tasks to archive/
-    "skip_dependents_on_failure": true ← skip tasks that depend on blocked
+    "parallel_features": true,     ← run independent features simultaneously
+    "max_eval_rounds": 3,          ← generator-evaluator iterations before escalating
+    "skip_permissions": true       ← agents run with full permissions
   }
 }
-```
-
----
-
-## What gets created after `/ship-code:init`
-
-```
-.ship/
-├── config.json       ← settings
-├── QUEUE.md          ← task queue (your command center)
-├── STATE.md          ← loop status
-├── HARD_BLOCKS.md    ← what agents can never do
-├── issues.md         ← agent blockers & learnings
-├── tasks/            ← active spec files
-└── archive/          ← completed work
 ```
 
 ---
@@ -130,22 +143,19 @@ Two files you'll check most:
 
 | Symptom | Fix |
 |---|---|
-| Agent went off-scope | Tighten `<can-modify>` in spec, rerun |
-| Wrong assumptions | Add context/snippets to spec, rerun |
-| Gates pass but feature broken | Rewrite `<acceptance>` criteria, rerun |
-| Excessive mocks | Add "no mocks — use real X" to spec, rerun |
-| Same failure on retry | The spec is the problem — rewrite it |
-
-**Rule: if a spec fails twice, rewrite the spec.**
+| Low evaluator scores | Read the feedback, adjust requirements in plan |
+| Generator can't figure it out | Add more context to the feature brief |
+| Gates pass but feature wrong | Tighten acceptance criteria in the plan |
+| Same failure on retry | The feature brief needs rewriting |
 
 ---
 
 ## Escalation
 
 The agent stops and asks you when:
-- Task requires files outside its declared scope
-- Gates fail twice on the same spec
-- A dependency is broken
+- Generator fails 3 times on the same feature
+- Evaluator rejects 3 times in a row
+- A dependency is blocked
 - Something unexpected changes the plan
 
 Agents log to `.ship/issues.md` and wait. They never silently work around blockers.
