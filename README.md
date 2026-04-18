@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/ship-code.png" alt="ship-code" width="720">
+</p>
+
 # ship-code
 
 Anti-slop agentic coding workflow for Claude Code. 3 agents, no enterprise theater.
