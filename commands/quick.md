@@ -15,7 +15,7 @@ Not for: anything touching more than 3 files, or anything with unclear scope.
 
 ## Steps
 
-1. **Scope check** — if the task seems to touch more than 3 files or has unclear boundaries, stop and suggest `/ship-code:plan` instead.
+1. **Scope check** — if the task seems to touch more than 3 files or has unclear boundaries, stop and suggest `/ship-code:ship` instead.
 
 2. **Implement** — explore the codebase, understand the patterns, make the change. Match existing conventions.
 

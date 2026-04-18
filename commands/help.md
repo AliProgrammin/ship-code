@@ -22,47 +22,35 @@ Print the ship-code quick-start guide and command reference.
 ```
 /ship-code:init
 ```
-Sets up quality gates, hooks, config, and hard blocks.
+Sets up quality gates, hooks, config, and hard blocks. Works on empty repos — stack gets picked during the first `/ship-code:ship`.
 
-**Ship a feature (the full flow):**
+**Ship something (the one command you need):**
 ```
 /ship-code:ship
 ```
-Interviews you, plans into feature briefs, runs generator-evaluator loops with graded quality scoring. This is the main command.
+Auto-detects state:
+- No plan yet → interview + plan + execute
+- Interview in progress → resumes from `.ship/draft.md`
+- Plan has pending features → offers to resume execution
+- Plan fully shipped → prompts to add features
 
-**Plan without executing:**
 ```
-/ship-code:plan add login with email + password
+/ship-code:ship 3                # run just feature 3
+/ship-code:ship add "OAuth"      # add a feature to the plan
+/ship-code:ship --plan-only      # plan without executing
 ```
-Creates feature briefs in `.ship/plan.md`. Review, then `/ship-code:loop` to execute.
-
-**Check plan status:**
-```
-/ship-code:queue
-```
-
-**Resume execution:**
-```
-/ship-code:loop
-```
-Picks up unfinished features from the plan.
 
 **Small fix or tweak:**
 ```
 /ship-code:quick rename UserCard to ProfileCard everywhere
 ```
-No ceremony. Gates still run.
+No plan, no evaluator. Gates still run.
 
-**Run quality evaluation:**
+**Grade the current state:**
 ```
 /ship-code:verify
 ```
-Graded rubric review (1-5 scale) — not just pass/fail.
-
-**Run a single feature:**
-```
-/ship-code:run 1
-```
+Evaluator runs standalone with the graded rubric (1-5 scale).
 
 ---
 
@@ -71,14 +59,12 @@ Graded rubric review (1-5 scale) — not just pass/fail.
 | Command | When to use |
 |---|---|
 | `/ship-code:init` | Once per project, before anything else |
-| `/ship-code:ship` | Ship features — interview, plan, generator-evaluator loops |
-| `/ship-code:plan <desc>` | Plan features into briefs |
-| `/ship-code:loop` | Resume execution from the plan |
-| `/ship-code:queue` | Show plan status or add features |
-| `/ship-code:run <feature>` | Run a single feature through generator-evaluator |
-| `/ship-code:verify` | Run graded quality evaluation |
-| `/ship-code:quick <desc>` | Small ad-hoc task (3 files max) |
+| `/ship-code:ship` | The full workflow — state-aware |
+| `/ship-code:quick <desc>` | Small ad-hoc change, no plan needed |
+| `/ship-code:verify` | Graded quality evaluation of current state |
 | `/ship-code:help` | Show this guide |
+
+That's it. Five commands. No `loop`, `run`, `plan`, or `queue` — all absorbed into `ship`.
 
 ---
 
@@ -88,26 +74,22 @@ Graded rubric review (1-5 scale) — not just pass/fail.
 You describe what to build
         │
         ▼
-  Interview — what, why, constraints
+  Interview — answers checkpointed to .ship/draft.md
+  (survives /clear)
         │
         ▼
-  Planner creates feature briefs
-  (goals + requirements, NOT implementation steps)
+  Planner:
+   - Prior-art sweep → .ship/prior-art.md
+   - Scaffolds stack if repo is empty
+   - Writes feature briefs → .ship/plan.md
         │
         ▼
   For each feature:
-  Generator-Evaluator loop
-        │
-        ├── Generator explores codebase
-        │   Makes implementation decisions
-        │   Builds feature, runs gates, commits
-        │
-        ├── Evaluator reviews with graded rubric
-        │   Scores: correctness, design, code quality,
-        │   test quality, security (1-5 each)
-        │
-        └── If score < 3 on any dimension → revise
-            Max 3 rounds, then escalate
+  Generator → Evaluator loop
+   - Generator builds, runs gates, commits
+   - Evaluator scores 1-5 on correctness, design,
+     code quality, tests, security
+   - <3 on any dimension → revise (max 3 rounds)
         │
         ▼
   You review. Push when ready.
@@ -119,9 +101,24 @@ You describe what to build
 
 | Agent | Role |
 |---|---|
-| **Planner** | Creates feature briefs (what + why, not how) |
+| **Planner** | Prior-art + scaffold + feature briefs (what + why, not how) |
 | **Generator** | Autonomous builder — explores, decides, implements |
 | **Evaluator** | Adversarial reviewer — graded rubric, not pass/fail |
+
+---
+
+## State-aware `ship` — the mental model
+
+`ship` reads `.ship/` and routes itself:
+
+| `.ship/` state | What `ship` does |
+|---|---|
+| no `plan.md`, no `draft.md` | Full flow — interview → plan → execute |
+| `draft.md` exists | Offers to resume interview |
+| `plan.md` has pending | Offers to resume execution |
+| `plan.md` fully shipped | Prompts to add features |
+
+You never have to remember which command to use. `ship` knows.
 
 ---
 
@@ -139,6 +136,20 @@ You describe what to build
 
 ---
 
+## `.ship/` folder (runtime state)
+
+```
+.ship/
+├── config.json        # settings + stack
+├── HARD_BLOCKS.md     # rules agents can never violate (defaults + ingested CLAUDE.md)
+├── issues.md          # blockers and learnings
+├── draft.md           # interview checkpoint (transient)
+├── prior-art.md       # competitor/OSS sweep
+└── plan.md            # the source of truth
+```
+
+---
+
 ## When something goes wrong
 
 | Symptom | Fix |
@@ -146,16 +157,16 @@ You describe what to build
 | Low evaluator scores | Read the feedback, adjust requirements in plan |
 | Generator can't figure it out | Add more context to the feature brief |
 | Gates pass but feature wrong | Tighten acceptance criteria in the plan |
-| Same failure on retry | The feature brief needs rewriting |
+| 3 consecutive features blocked | The plan is the problem — rewrite briefs |
 
 ---
 
 ## Escalation
 
-The agent stops and asks you when:
-- Generator fails 3 times on the same feature
-- Evaluator rejects 3 times in a row
-- A dependency is blocked
-- Something unexpected changes the plan
+`ship` stops and waits when:
+- Generator fails 3 times on the same feature → marks blocked, moves on
+- 3 consecutive features blocked → stops the batch, flags the plan
+- Hard block would be violated → stops immediately, never overrides
+- All remaining features depend on blocked ones
 
-Agents log to `.ship/issues.md` and wait. They never silently work around blockers.
+Agents log to `.ship/issues.md`. They never silently work around blockers.

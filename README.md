@@ -21,17 +21,20 @@ npx ship-code@latest --uninstall # remove
 
 ## Commands
 
+Five commands. `ship` is state-aware and absorbs the old `loop`, `run`, `plan`, `queue`.
+
 | Command | What it does |
 |---|---|
-| `/ship-code:init` | Set up hooks, gates, config, and hard blocks |
-| `/ship-code:ship` | Full flow — interview, plan, generator-evaluator loops |
-| `/ship-code:plan <desc>` | Create feature briefs for what to build |
-| `/ship-code:loop` | Resume execution from the plan |
-| `/ship-code:queue` | Show plan status or add features |
-| `/ship-code:run <feature>` | Run one feature through generator-evaluator |
-| `/ship-code:verify` | Run graded quality evaluation |
+| `/ship-code:init` | Set up hooks, gates, config, hard blocks (works on empty repos) |
+| `/ship-code:ship` | State-aware workflow — interview, plan, execute, or resume |
 | `/ship-code:quick <desc>` | Small ad-hoc task — gates still enforced |
+| `/ship-code:verify` | Run graded quality evaluation standalone |
 | `/ship-code:help` | Show the guide |
+
+`ship` takes optional arguments:
+- `/ship-code:ship 3` — run just feature 3
+- `/ship-code:ship add "OAuth"` — add a feature to the plan
+- `/ship-code:ship --plan-only` — plan without executing
 
 ## How It Works
 
@@ -39,32 +42,26 @@ npx ship-code@latest --uninstall # remove
 You describe what to build
         │
         ▼
-  Interview — what, why, constraints
+  Interview — checkpointed to .ship/draft.md (survives /clear)
         │
         ▼
-  Planner creates feature briefs
-  (goals + requirements, NOT implementation steps)
+  Planner:
+   - Prior-art sweep → .ship/prior-art.md
+   - Scaffolds stack if repo is empty
+   - Writes feature briefs → .ship/plan.md
         │
         ▼
-  For each feature:
-  ┌─────────────────────────┐
-  │  Generator-Evaluator    │
-  │  Loop (max 3 rounds)    │
-  │                         │
-  │  Generator: explores    │
-  │  codebase, implements,  │
-  │  runs gates, commits    │
-  │         ↓               │
-  │  Evaluator: scores on   │
-  │  5 dimensions (1-5)     │
-  │         ↓               │
-  │  Score < 3? → revise    │
-  │  Score >= 3? → ship     │
-  └─────────────────────────┘
+  For each feature, Generator-Evaluator loop (max 3 rounds):
+   - Generator builds, runs gates, commits
+   - Evaluator scores 1-5 on 5 dimensions
+   - <3 on any dimension → revise
+   - >=3 on all → ship
         │
         ▼
   You review. Push when ready.
 ```
+
+`ship` is state-aware — no plan means interview, pending plan means resume, shipped plan means prompt to add features.
 
 ## The 3 Agents
 
@@ -122,14 +119,16 @@ Every feature gets scored 1-5 on:
 5. **Generator decides the how.** Briefs say what and why. Implementation is autonomous.
 6. **Escalate, don't improvise.** If stuck, stop and ask.
 
-## File Structure After `/ship-code:init`
+## File Structure
 
 ```
 .ship/
-├── config.json        # Settings
-├── HARD_BLOCKS.md     # What agents can never do
+├── config.json        # Settings + stack
+├── HARD_BLOCKS.md     # Defaults + rules ingested from CLAUDE.md
 ├── issues.md          # Agent blockers & learnings
-└── plan.md            # Feature briefs (created during /ship-code:ship or /ship-code:plan)
+├── draft.md           # Interview checkpoint (transient)
+├── prior-art.md       # Competitor/OSS sweep (written by planner)
+└── plan.md            # Feature briefs — the source of truth
 ```
 
 ## License

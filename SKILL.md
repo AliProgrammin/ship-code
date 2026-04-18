@@ -41,17 +41,20 @@ The `.ship/` folder is created **inside your project root** by `/ship-code:init`
 
 ## Commands
 
+Five commands. `ship` is state-aware — it replaces the old `loop`, `run`, `plan`, and `queue`.
+
 | Command | What it does |
 |---|---|
-| `/ship-code:init` | Set up hooks, gates, config, and hard blocks |
-| `/ship-code:ship` | Full flow — interview, plan, generator-evaluator loops |
-| `/ship-code:plan <desc>` | Create feature briefs for what to build |
-| `/ship-code:loop` | Resume execution from the plan |
-| `/ship-code:queue` | Show plan status or add features |
-| `/ship-code:run <feature>` | Run generator-evaluator loop on one feature |
-| `/ship-code:verify` | Run graded quality evaluation |
+| `/ship-code:init` | Set up hooks, gates, config, hard blocks (handles empty repos) |
+| `/ship-code:ship` | State-aware workflow — interview, plan, execute, or resume |
 | `/ship-code:quick <desc>` | Ad-hoc small task — gates still enforced |
+| `/ship-code:verify` | Run graded quality evaluation standalone |
 | `/ship-code:help` | Show the guide |
+
+`ship` arguments:
+- `/ship-code:ship 3` — run just feature 3
+- `/ship-code:ship add "OAuth"` — add a feature
+- `/ship-code:ship --plan-only` — plan without executing
 
 ---
 
@@ -83,12 +86,11 @@ The main context is the orchestrator. It stays light. All heavy work happens in 
 
 | Command | Who does the work |
 |---|---|
-| `/ship-code:ship` | Interview in main → `ship-planner` → `ship-brain` (spawns `ship-generator` + `ship-evaluator` agents) |
-| `/ship-code:plan` | `ship-planner` |
-| `/ship-code:loop` | `ship-brain` (spawns `ship-generator` + `ship-evaluator` agents) |
-| `/ship-code:run` | `ship-generator` → `ship-evaluator` |
+| `/ship-code:ship` (fresh) | Interview in main → `ship-planner` (does prior-art + scaffold + briefs) → `ship-brain` (spawns `ship-generator` + `ship-evaluator` agents) |
+| `/ship-code:ship` (resume) | `ship-brain` only |
+| `/ship-code:ship <n>` | `ship-brain` with single-feature plan |
+| `/ship-code:ship add <desc>` | `ship-planner` (writes just the new brief) |
 | `/ship-code:verify` | `ship-evaluator` |
-| `/ship-code:queue` | Runs in main context — lightweight read/write of plan.md |
 | `/ship-code:quick` | Runs in main context — small enough |
 | `/ship-code:init` | Runs in main context — one-time setup |
 
@@ -159,14 +161,16 @@ The main context is the orchestrator. It stays light. All heavy work happens in 
 
 ---
 
-## File structure after `/ship-code:init`
+## File structure
 
 ```
 .ship/
-├── config.json          # Settings
-├── HARD_BLOCKS.md       # What agents can never do
+├── config.json          # Settings + stack
+├── HARD_BLOCKS.md       # Defaults + rules ingested from CLAUDE.md
 ├── issues.md            # Agent blockers & learnings
-└── plan.md              # Feature briefs (created by /ship-code:plan or /ship-code:ship)
+├── draft.md             # Interview checkpoint (transient, survives /clear)
+├── prior-art.md         # Competitor/OSS sweep (written by planner)
+└── plan.md              # Feature briefs — source of truth
 ```
 
 ---
