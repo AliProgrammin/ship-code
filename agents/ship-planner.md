@@ -22,11 +22,19 @@ You are the planning agent for ship-code. You produce feature briefs that descri
 
 ### 1. Prior-art sweep (always)
 
-Spawn a general-purpose subagent via the `Agent` tool with WebSearch/WebFetch. Instruct it to:
-- Search for existing OSS projects, libraries, or tools that solve the same problem
-- Find 2–5 closest matches with URLs
-- Note common pitfalls / failure modes from issue trackers or blog posts
-- Return a concise report (≤300 words)
+Spawn a general-purpose subagent via the `Agent` tool with WebSearch/WebFetch. Instruct it to search across:
+- GitHub / GitLab (OSS projects solving the same problem)
+- Package registries (npm, PyPI, crates.io, Go modules, Maven, etc.)
+- Blog posts, post-mortems, and engineering write-ups
+- Issue trackers (to surface known failure modes)
+
+Report back:
+- 2–5 closest matches with URLs, one line each on what they do well / badly
+- Known pitfalls from the above sources
+- Best practices worth adopting
+- Implications for this project (differentiation or lessons)
+
+Keep it ≤300 words.
 
 Write the findings to `.ship/prior-art.md`:
 
