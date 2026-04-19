@@ -22,19 +22,24 @@ You are the planning agent for ship-code. You produce feature briefs that descri
 
 ### 1. Prior-art sweep (always)
 
-Spawn a general-purpose subagent via the `Agent` tool with WebSearch/WebFetch. Instruct it to search across:
-- GitHub / GitLab (OSS projects solving the same problem)
-- Package registries (npm, PyPI, crates.io, Go modules, Maven, etc.)
-- Blog posts, post-mortems, and engineering write-ups
-- Issue trackers (to surface known failure modes)
+Spawn a general-purpose subagent via the `Agent` tool with WebSearch/WebFetch. Cast a wide net — do not limit to GitHub. Instruct it to search across:
+- **Code hosts:** GitHub, GitLab, Bitbucket, Codeberg, SourceHut — OSS projects solving the same problem
+- **Package registries:** npm, PyPI, crates.io, Go modules, Maven Central, RubyGems, NuGet, Hex, Packagist
+- **Commercial products:** Product Hunt, vendor sites, SaaS landing pages — paid tools that already solve this
+- **Developer communities:** Hacker News, Lobste.rs, Reddit (relevant subs), Stack Overflow, dev.to, Hashnode
+- **Written resources:** engineering blogs, post-mortems, RFCs, standards drafts, substacks
+- **Talks and video:** YouTube, conference archives (e.g., QCon, GOTO, PyCon), podcast transcripts
+- **Academic/research:** arXiv, Google Scholar — only if the problem has a research dimension (crypto, ML, distributed systems, etc.)
+- **Issue trackers:** GitHub/GitLab issues on the closest matches — to surface known failure modes, gotchas, and abandoned features
 
 Report back:
 - 2–5 closest matches with URLs, one line each on what they do well / badly
-- Known pitfalls from the above sources
-- Best practices worth adopting
-- Implications for this project (differentiation or lessons)
+- Known pitfalls and failure modes (cite sources)
+- Best practices worth adopting (cite sources)
+- Commercial alternatives the user should be aware of (if any)
+- Implications for this project — should we fork, extend, differentiate, or build fresh?
 
-Keep it ≤300 words.
+Keep it ≤400 words. Depth beats breadth — 3 deeply-researched matches are more useful than 10 shallow ones.
 
 Write the findings to `.ship/prior-art.md`:
 
