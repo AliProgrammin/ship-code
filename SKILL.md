@@ -86,9 +86,9 @@ The main context is the orchestrator. It stays light. All heavy work happens in 
 
 | Command | Who does the work |
 |---|---|
-| `/ship-code:ship` (fresh) | Interview in main → `ship-planner` (does prior-art + scaffold + briefs) → `ship-brain` (spawns `ship-generator` + `ship-evaluator` agents) |
-| `/ship-code:ship` (resume) | `ship-brain` only |
-| `/ship-code:ship <n>` | `ship-brain` with single-feature plan |
+| `/ship-code:ship` (fresh) | Interview in main → `ship-planner` (does prior-art + scaffold + briefs) → main orchestrates generator+evaluator loops via the `Agent` tool |
+| `/ship-code:ship` (resume) | Main orchestrates generator+evaluator loops via the `Agent` tool |
+| `/ship-code:ship <n>` | One iteration of the generator+evaluator loop in main |
 | `/ship-code:ship add <desc>` | `ship-planner` (writes just the new brief) |
 | `/ship-code:verify` | `ship-evaluator` |
 | `/ship-code:quick` | Runs in main context — small enough |
@@ -103,7 +103,7 @@ The main context is the orchestrator. It stays light. All heavy work happens in 
 **Rules for subagents:**
 - Each subagent gets exactly one job with a clear deliverable
 - Subagents write artifacts to disk (`.ship/`) so nothing is lost when they exit
-- `ship-brain` is the only agent that can spawn other agents
+- Main context spawns generator/evaluator via the `Agent` tool — no nested subagent spawning
 - All other agents are leaf agents — they do their work and return
 
 ---

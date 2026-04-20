@@ -33,7 +33,7 @@ Before doing anything else, inspect project state:
    - `.ship/plan.md` exists with `pending`, `in-progress`, or `blocked` features → **Resume-execute mode**
    - `.ship/plan.md` exists, all features shipped → print `"Plan complete. Add features with /ship-code:ship add <desc>."` and stop
 
-   Treat `in-progress` as `pending` — ship-brain re-runs the generator-evaluator loop and the generator picks up from any scaffolded files.
+   Treat `in-progress` as `pending` — the Step 4 loop re-runs the generator-evaluator loop and the generator picks up from any scaffolded files.
 
 3. **Config sanity check:**
    - If `.ship/config.json` has `stack: "unknown"` → note this. The planner will bootstrap the stack during Step 3.
@@ -146,7 +146,27 @@ If `--plan-only` was passed, stop here.
 
 ## Step 4 — Execute
 
-Spawn `ship-brain` with the plan. It runs generator-evaluator loops, updates plan.md statuses per feature, and returns a summary.
+Main context orchestrates the generator-evaluator loops directly. No `ship-brain` subagent — nested subagent spawning is unreliable across Claude Code versions. Main stays clean because every generator and evaluator call happens in its own subagent context.
+
+**The loop:**
+
+1. Read `.ship/plan.md`. Find the next feature whose status is `pending` or `in-progress` AND whose dependencies are all `shipped`.
+2. If none exist: jump to Step 5 (summary).
+3. Set that feature's status to `in-progress` via `Edit`.
+4. **Spawn `ship-generator`** via the `Agent` tool. Pass the feature brief inline as the prompt. Generator returns `status: success|failure` + commit hash or reason.
+5. If `status: failure` → mark `blocked`, increment consecutive-block counter, skip dependents, go to step 1.
+6. If `status: success` → **spawn `ship-evaluator`** via the `Agent` tool. Evaluator returns SHIP / REVISE / REJECT with scores.
+7. Evaluator verdict:
+   - **SHIP** → mark `shipped`, reset consecutive-block counter, go to step 1.
+   - **REVISE** or **REJECT** → back to step 4 with evaluator's feedback appended to the generator prompt. Max 3 rounds before marking `blocked`.
+8. **Stop conditions:**
+   - All features shipped → Step 5.
+   - 3 consecutive features blocked → stop the batch, Step 5 with "plan likely needs rewriting."
+   - Hard block violation detected → stop immediately, Step 5 with escalation note.
+
+**Parallel execution:** if multiple pending features all have their dependencies shipped, spawn their generators in a **single message with multiple Agent tool calls**. Evaluators run sequentially per feature (each depends on its generator finishing first).
+
+**What main context holds:** only the short summaries subagents return — status, commit hash, verdict, scores. Never the raw diff, test output, or file contents.
 
 ---
 
@@ -185,14 +205,14 @@ Default: **resume immediately without prompting.** Print one line and go:
 Resuming plan — <N> pending, <M> in-progress, <K> blocked. (ctrl-c to abort)
 ```
 
-Reset `blocked` → `pending` (user presumably fixed the issue). Leave `in-progress` as-is (ship-brain treats it as pending). Spawn `ship-brain`, go to Step 5.
+Reset `blocked` → `pending` (user presumably fixed the issue). Leave `in-progress` as-is (the loop treats it as pending). Jump into the Step 4 loop.
 
-**Exception:** if `.ship/config.json` has `workflow.confirm_resume: true`, prompt `Resume? [y/n]` before spawning. Default is `false`.
+**Exception:** if `.ship/config.json` has `workflow.confirm_resume: true`, prompt `Resume? [y/n]` before starting. Default is `false`.
 
 ### Single-feature mode (`/ship-code:ship 3`)
 
 - Read `.ship/plan.md`, find feature `n`.
-- Spawn `ship-brain` with a single-feature plan (just that feature).
+- Run the Step 4 loop on just that feature (one iteration).
 - Go to Step 5.
 
 ### Add-feature mode (`/ship-code:ship add <desc>`)
