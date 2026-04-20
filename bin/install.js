@@ -47,6 +47,23 @@ async function main() {
     return;
   }
 
+  const { rmSync, unlinkSync } = await import('fs');
+
+  // Clean old ship-code commands so stale files from earlier versions
+  // (e.g. loop.md, run.md, plan.md, queue.md in v3) are removed on upgrade.
+  if (existsSync(commandsDest)) {
+    rmSync(commandsDest, { recursive: true, force: true });
+  }
+
+  // Clean old ship-* agents so renamed/removed agents don't linger.
+  if (existsSync(agentsDest)) {
+    for (const f of readdirSync(agentsDest)) {
+      if (f.startsWith('ship-') && f.endsWith('.md')) {
+        unlinkSync(join(agentsDest, f));
+      }
+    }
+  }
+
   // Copy commands/
   const cmdSrc = join(pkgRoot, 'commands');
   mkdirSync(commandsDest, { recursive: true });

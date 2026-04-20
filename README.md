@@ -23,6 +23,41 @@ npx ship-code@latest --local     # project-only, no prompt
 npx ship-code@latest --uninstall # remove
 ```
 
+## Upgrading from an older version
+
+v4+ removed the `loop`, `run`, `plan`, and `queue` commands — they're all absorbed into state-aware `ship`. The installer now cleans stale command/agent files on upgrade, so:
+
+```bash
+npx ship-code@latest          # global
+# or
+npx ship-code@latest --local  # this project only
+```
+
+Then **restart Claude Code** so slash commands reload. After that, `/ship-code:` should show only five commands.
+
+If you upgraded *before* v4.0.3 and still see old commands, the installer didn't clean up. Do it manually once:
+
+```bash
+# Globally installed
+rm -rf ~/.claude/commands/ship-code
+rm -f  ~/.claude/agents/ship-*.md
+
+# Or project-local
+rm -rf .claude/commands/ship-code
+rm -f  .claude/agents/ship-*.md
+
+# Then reinstall
+npx ship-code@latest
+```
+
+Also wipe any pre-v4 runtime cruft from your project (the old prompt-staging folder):
+
+```bash
+rm -rf .ship/_prompts
+```
+
+Your `.ship/plan.md`, `config.json`, `HARD_BLOCKS.md`, and `issues.md` stay — they're your project's state, not plugin files.
+
 ## Commands
 
 Five commands. `ship` is state-aware and absorbs the old `loop`, `run`, `plan`, `queue`.
