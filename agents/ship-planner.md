@@ -101,6 +101,9 @@ Save each brief to `.ship/plan.md` as a section:
 - <concrete requirement 2>
 - <concrete requirement 3>
 
+### Decisions (resolved during interview)
+- <ambiguity> → chose <X> over <Y, Z> because <reason>
+
 ### Quality bar
 - <what "good" looks like for design/patterns>
 - <what "good" looks like for testing>
@@ -118,7 +121,20 @@ Save each brief to `.ship/plan.md` as a section:
 ...
 ```
 
-### 5. Cleanup
+The **Decisions** section preserves choices the user made when the planner surfaced ambiguity during the interview, so the generator doesn't relitigate them. Omit the section if the feature had no surfaced ambiguity.
+
+### 5. Self-review before presenting
+
+Before returning to main context, re-read the briefs you just wrote against this 4-point checklist. Fix issues inline before returning:
+
+1. **Placeholders** — any `<TBD>`, `<TODO>`, `???`, vague phrases like "as needed" or "where appropriate"? Replace with concrete language.
+2. **Internal consistency** — do dependencies match (Feature 3 says "depends on 1" but Feature 1 doesn't exist)? Is the same term used the same way across briefs?
+3. **Scope** — is any single feature actually 2+ features hiding together? Split if so.
+4. **Ambiguity** — re-read each requirement: could a reader interpret it two ways? Tighten the wording.
+
+Don't return a "Plan ready" summary until all four checks pass.
+
+### 6. Cleanup
 
 - Delete `.ship/draft.md` if it exists — the interview is now encoded in the plan.
 

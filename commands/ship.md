@@ -37,28 +37,53 @@ Before doing anything else, inspect project state:
 
 3. **Config sanity check:**
    - If `.ship/config.json` has `stack: "unknown"` → note this. The planner will bootstrap the stack during Step 3.
-   - If `.ship/` is missing entirely → tell user to run `/ship-code:init` first and stop.
+   - If `.ship/` is missing entirely → **auto-init silently** by running the steps in `commands/init.md` (detect stack, write `.ship/config.json` + `issues.md` + `HARD_BLOCKS.md` with global-rule ingestion, install pre-commit hook if stack is known). Print one line: `Initialized .ship/ for this project (stack: <detected>).` Then continue to Step 1. Do NOT stop and ask the user to run `/ship-code:init` separately.
 
 ---
 
 ## Step 1 — Interview (Fresh-ship mode)
 
-Ask the user what they want to build. **Use `AskUserQuestion` when available:**
+The interview is fast and surgical. **Goal:** capture purpose + constraints + done-definition for each feature, nothing more. Stop when those three are clear — no fixed question count.
 
-1. Call `ToolSearch` with query `select:AskUserQuestion` to load its schema. If it loads, use it. If the search returns nothing, fall back to plain conversational questions.
+### 1a. Triage the user's message
 
-2. **Batch 1 — goal and stack:**
-   - "What are you building?" (free text)
-   - "Preferred stack?" — multiChoice: `TS/Node`, `Python`, `Rust`, `Go`, `Other (describe)`  *(skip this question if `config.json` already has a concrete stack)*
-   - "Scope?" — multiChoice: `Prototype`, `MVP`, `Production`
+Count distinct features in what the user said. If you see **3 or more** independent things, decompose first:
 
-3. **Batch 2 — constraints and priority** (only if answers so far warrant it):
-   - "Any hard constraints?" (free text — e.g. "no external DB", "must be offline-capable")
-   - "Priority?" — multiChoice: `Speed`, `Security`, `Cleanliness`
+```
+I count <N> features in what you described:
+  1. <one-line summary>
+  2. <one-line summary>
+  3. <one-line summary>
+  ...
 
-**Cap: 5 questions total. Stop asking once you have enough.**
+Plan all <N>, or pick one to start? [all / 1 / 2 / 3 / ...]
+```
 
-### Checkpoint after every answer
+If 1–2 features, skip the decomposition message and move straight to 1b.
+
+### 1b. Question loop — one at a time
+
+**Use `AskUserQuestion` when available:** call `ToolSearch` with `select:AskUserQuestion` to load it. If unavailable, fall back to plain conversational questions.
+
+Ask **one question per turn**, multi-choice when possible. Cycle through these axes only:
+
+- **Purpose** — why this feature, what does success look like for the user
+- **Constraints** — what can't change, off-limits, must-have technical bounds
+- **Done-definition** — testable conditions that mean "this is shipped"
+
+**Lead with a recommendation when surfacing ambiguity.** Don't ask neutral menu questions — tell the user what you'd pick and why:
+
+> *"'Clean the landing page more' could mean: (A) cut sections, (B) simplify the hero, (C) trim copy. I'd recommend B since the hero is the densest. Which?"*
+
+**Stop asking when all three axes are clear for every planned feature.** Could be 1 question, could be 5. Don't pad. Don't ask things that already have implied answers.
+
+### 1c. Stack/scope (only if not already captured)
+
+If `config.json` has `stack: "unknown"`, ask stack as a multi-choice question once. Otherwise skip.
+
+If the user's message clearly implies prototype vs production (e.g. "just sketch this out" vs "ship to customers"), don't ask — infer.
+
+### 1d. Checkpoint after every answer
 
 Append to `.ship/draft.md` immediately after each answer arrives:
 
@@ -72,6 +97,9 @@ A: <answer>
 
 ## Q: <question>
 A: <answer>
+
+## Decisions
+- <ambiguity surfaced> → user picked <X> over <Y>, <Z>
 ```
 
 This file is deleted when the planner successfully writes `.ship/plan.md`. If `/clear` happens mid-interview, this file is what lets you resume.
