@@ -1,0 +1,4 @@
+interface:
+  display_name: "ship-code"
+  short_description: "Plan, build, and grade code changes"
+  default_prompt: "Use $ship-code to plan, implement, gate, and evaluate this code change."

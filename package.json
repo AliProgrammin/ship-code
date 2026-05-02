@@ -1,7 +1,7 @@
 {
   "name": "ship-code",
-  "version": "4.2.0",
-  "description": "Anti-slop agentic coding workflow for Claude Code — 3 agents, graded quality",
+  "version": "4.3.0",
+  "description": "Anti-slop agentic coding workflow for Claude Code and Codex — 3 agents, graded quality",
   "type": "module",
   "bin": {
     "ship-code": "bin/install.js"
@@ -9,7 +9,8 @@
   "files": [
     "bin",
     "commands",
-    "agents"
+    "agents",
+    "skills"
   ],
   "engines": {
     "node": ">=18.0.0"
@@ -17,6 +18,8 @@
   "keywords": [
     "claude",
     "claude-code",
+    "codex",
+    "codex-skill",
     "ai",
     "workflow",
     "quality-gates"
@@ -25,6 +28,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aliprogrammin/ship-code"
+    "url": "git+https://github.com/aliprogrammin/ship-code.git"
   }
 }

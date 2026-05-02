@@ -4,7 +4,7 @@
 
 # ship-code
 
-Anti-slop agentic coding workflow for Claude Code. 3 agents, no enterprise theater.
+Anti-slop agentic coding workflow for Claude Code and Codex. 3 agents, no enterprise theater.
 
 **Core philosophy:** Slop is an engineering problem, not an LLM problem. If an agent produces bad code, fix the environment — never patch the output.
 
@@ -16,11 +16,34 @@ npx ship-code@latest
 
 Prompts you to install globally (all projects) or locally (this project only). Then restart Claude Code and type `/ship-code:` to see all commands.
 
+By default, the npm installer keeps the existing Claude Code behavior. For Codex, install the bundled Codex skill:
+
+```bash
+npx ship-code@latest --codex --global
+```
+
+Or install both Claude Code commands and the Codex skill:
+
+```bash
+npx ship-code@latest --all --global
+```
+
+Codex can also install directly from GitHub with its skill installer. Ask Codex:
+
+```text
+Install the Codex skill from https://github.com/aliprogrammin/ship-code/tree/main/skills/ship-code
+```
+
+Then restart Codex and ask it to use `$ship-code`.
+
 **Flags:**
 ```bash
 npx ship-code@latest --global    # global, no prompt
 npx ship-code@latest --local     # project-only, no prompt
-npx ship-code@latest --uninstall # remove
+npx ship-code@latest --codex     # install Codex skill
+npx ship-code@latest --claude    # install Claude Code commands (default)
+npx ship-code@latest --all       # install Claude Code + Codex
+npx ship-code@latest --uninstall # remove selected target
 ```
 
 ## Upgrading from an older version
@@ -60,7 +83,7 @@ Your `.ship/plan.md`, `config.json`, `HARD_BLOCKS.md`, and `issues.md` stay — 
 
 ## Commands
 
-Five commands. `ship` is state-aware and absorbs the old `loop`, `run`, `plan`, `queue`.
+Claude Code gets five slash commands. `ship` is state-aware and absorbs the old `loop`, `run`, `plan`, `queue`.
 
 | Command | What it does |
 |---|---|
@@ -74,6 +97,12 @@ Five commands. `ship` is state-aware and absorbs the old `loop`, `run`, `plan`, 
 - `/ship-code:ship 3` — run just feature 3
 - `/ship-code:ship add "OAuth"` — add a feature to the plan
 - `/ship-code:ship --plan-only` — plan without executing
+
+In Codex, there are no slash commands. Use natural language:
+- `use $ship-code to init this project`
+- `use $ship-code to ship this feature: ...`
+- `use $ship-code quick to fix ...`
+- `use $ship-code verify`
 
 ## How It Works
 

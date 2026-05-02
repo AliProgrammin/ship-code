@@ -1,17 +1,17 @@
 ---
 name: ship-code
 description: >
-  Anti-slop agentic coding workflow for Claude Code. Use this skill whenever the user wants to set up
+  Anti-slop agentic coding workflow for Claude Code and Codex. Use this skill whenever the user wants to set up
   an agentic coding workflow, enforce quality gates, prevent technical debt, build features with
   quality scoring, or run a plan→generate→evaluate loop. Trigger on phrases like "set up my project
-  for Claude Code", "break this into features", "quality gates", "pre-commit hooks", "agentic
+  for Claude Code", "set up my project for Codex", "break this into features", "quality gates", "pre-commit hooks", "agentic
   workflow", "ship-code workflow", or any request to build something non-trivial with Claude Code
-  where quality and traceability matter.
+  or Codex where quality and traceability matter.
 ---
 
 # ship-code
 
-A lightweight anti-slop workflow for Claude Code. 3 agents, no enterprise theater.
+A lightweight anti-slop workflow for Claude Code and Codex. 3 agents, no enterprise theater.
 
 **Core philosophy:** Slop is an engineering problem, not an LLM problem. If an agent produces bad
 code, fix the environment — never patch the output.
@@ -20,16 +20,37 @@ code, fix the environment — never patch the output.
 
 ## Installation
 
-This is a Claude Code plugin. Install via:
+This package includes:
+- Claude Code slash commands and agents at the repository root.
+- A Codex skill at `skills/ship-code/`.
+
+Install the default Claude Code plugin via:
 ```bash
 npx ship-code@latest
 ```
 
-Or place this folder manually at:
+Install the Codex skill via npm:
+```bash
+npx ship-code@latest --codex --global
+```
+
+Or install the Codex skill directly from GitHub:
+```text
+repo: aliprogrammin/ship-code
+path: skills/ship-code
+```
+
+For Claude Code, place this folder manually at:
 - **Global** (all projects): `~/.claude/plugins/ship-code/`
 - **Project-level** (this project only): `.claude/plugins/ship-code/`
 
 Commands will be available as `/ship-code:init`, `/ship-code:ship`, etc.
+
+For Codex, install/copy `skills/ship-code/` to:
+- **Global**: `${CODEX_HOME:-~/.codex}/skills/ship-code/`
+- **Project-level**: `.codex/skills/ship-code/`
+
+Then restart Codex and ask it to use `$ship-code`.
 
 ## About `.ship/`
 
