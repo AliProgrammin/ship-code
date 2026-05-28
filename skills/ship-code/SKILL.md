@@ -27,15 +27,19 @@ Create and maintain `.ship/` in the project root:
 
 ```text
 .ship/
-├── config.json
-├── HARD_BLOCKS.md
-├── issues.md
-├── draft.md
-├── prior-art.md
-└── plan.md
+├── config.json       # settings + stack
+├── HARD_BLOCKS.md    # rules to read before every commit (defaults + ingested CLAUDE.md/AGENTS.md)
+├── issues.md         # ship ledger — append-only history of every shipped feature (f1, f2, … fN)
+├── draft.md          # interview checkpoint (transient)
+├── prior-art.md      # competitor/OSS sweep
+└── plan.md           # forecast — only pending/in-progress/blocked features
 ```
 
-`plan.md` is the source of truth. Use statuses `pending`, `in-progress`, `shipped`, and `blocked`.
+**Two state files, two roles:**
+- `plan.md` is the **forecast**: planned work, statuses `pending` / `in-progress` / `blocked`. When a feature ships, its section is pruned from `plan.md`.
+- `issues.md` is the **history**: every shipped or blocked feature, including `/quick` and ad-hoc work, in order. Append-only.
+
+This split keeps `plan.md` a clean to-do list and prevents the drift where the plan only shows 12 features but 37 actually shipped.
 
 ## Init mode
 
@@ -49,14 +53,7 @@ Create and maintain `.ship/` in the project root:
 
 ```json
 {
-  "gates": {
-    "tests": true,
-    "lint": true,
-    "types": true,
-    "no_push": true
-  },
   "stack": "<detected>",
-  "issue_log": ".ship/issues.md",
   "workflow": {
     "parallel_features": true,
     "max_eval_rounds": 3,
@@ -65,7 +62,18 @@ Create and maintain `.ship/` in the project root:
 }
 ```
 
-3. Write `.ship/issues.md` with an empty issues table.
+3. Write `.ship/issues.md` — the empty ship ledger header:
+
+```markdown
+# Ship Ledger
+
+Every unit of work shipped on this project, in order. Append-only — once a feature is here, only its `Eval:` and `Status:` lines are ever updated. Reverts become new entries pointing back at the original.
+
+Plan.md is the forecast (planned work, shrinks as features ship). This file is the history (everything that happened, grows forever).
+
+---
+```
+
 4. Write `.ship/HARD_BLOCKS.md` with defaults:
    - NEVER `git push` unless the user explicitly asks.
    - NEVER use `any`, `@ts-ignore`, disabled lint rules, skipped tests, deleted tests, `--no-verify`, or commits with failing tests to bypass gates.
@@ -79,9 +87,12 @@ State detection:
 1. If `.ship/` is missing, run Init mode silently and continue.
 2. If `.ship/plan.md` is missing, interview the user until purpose, constraints, and done-definition are clear. Checkpoint each answer into `.ship/draft.md`.
 3. Confirm a one-paragraph sketch before planning.
-4. Plan feature briefs in `.ship/plan.md`. Each brief says what and why, never exact implementation steps.
-5. Execute pending features in dependency order. Treat `in-progress` as resumable pending work.
-6. Evaluate each completed feature. Revise up to `workflow.max_eval_rounds`; then mark blocked and log in `.ship/issues.md`.
+4. Before writing briefs, read `.ship/issues.md` so you don't replan already-shipped features.
+5. Plan feature briefs in `.ship/plan.md`. Each brief says what and why, never exact implementation steps.
+6. Read `.ship/HARD_BLOCKS.md` before every implementation step. Treat each line as a constraint that cannot be violated.
+7. Execute pending features in dependency order. Treat `in-progress` as resumable pending work.
+8. Evaluate each completed feature. Revise up to `workflow.max_eval_rounds`; then mark blocked.
+9. **After every feature** (shipped, blocked, or `/quick`), append an entry to `.ship/issues.md` using the schema below, then **prune** the plan.md entry if it was a shipped plan feature. Commit the ledger update as a separate `chore(ledger): f<N> <title>` commit so the ledger's `Commit:` line points to a real prior hash.
 
 Feature brief format:
 
@@ -106,6 +117,37 @@ Feature brief format:
 - <testable condition>
 - lint + types + tests pass
 ```
+
+Ledger entry format (append to `.ship/issues.md` after every shipped, blocked, or quick task):
+
+```markdown
+## f<N> — <title>
+Date:    <ISO-8601 UTC>
+Source:  plan | quick | adhoc
+Commit:  <full-hash>
+Status:  shipped | blocked | reverted
+Eval:    <avg>/5  (Correctness <n> · Design <n> · Code <n> · Tests <n> · Security <n>)   ← or "ungraded"
+Rounds:  <N>
+
+### What shipped
+<2-3 sentences, user-visible behavior change>
+
+### Why
+<1-2 sentences, motivation>
+
+### Files touched
+- <path> (added|modified|deleted)
+
+### Decisions / gotchas
+- <only if non-obvious; omit section if none>
+
+### Blocked reason
+<only if Status: blocked>
+
+---
+```
+
+`f<N>` is global and append-only — find the last `## f<N>` heading in `issues.md`, next number is `N + 1`. Independent of plan.md feature numbers.
 
 If the user explicitly authorizes subagents, map roles like this:
 

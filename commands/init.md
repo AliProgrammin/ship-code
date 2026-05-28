@@ -25,14 +25,7 @@ Create `.ship/config.json` — set `stack` to what you detected above, or `"unkn
 
 ```json
 {
-  "gates": {
-    "tests": true,
-    "lint": true,
-    "types": true,
-    "no_push": true
-  },
   "stack": "<detected>",
-  "issue_log": ".ship/issues.md",
   "workflow": {
     "parallel_features": true,
     "max_eval_rounds": 3,
@@ -41,12 +34,18 @@ Create `.ship/config.json` — set `stack` to what you detected above, or `"unkn
 }
 ```
 
-Create `.ship/issues.md`:
-```markdown
-# Issues
+Create `.ship/issues.md` — the append-only ledger of every feature shipped on this project:
 
-| Date | Feature | Issue | Root Cause | Resolution |
-|------|---------|-------|------------|------------|
+```markdown
+# Ship Ledger
+
+Every unit of work shipped on this project, in order. Append-only — once a feature is here, only its `Eval:` and `Status:` lines are ever updated (by the evaluator). Reverts become new entries pointing back at the original.
+
+Plan.md is the forecast (planned work, shrinks as features ship). This file is the history (everything that happened, grows forever).
+
+Entry format is documented in `commands/ship.md` Step 4a.
+
+---
 ```
 
 ### 3. Build `HARD_BLOCKS.md` (defaults + ingested user rules)

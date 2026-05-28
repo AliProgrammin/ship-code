@@ -31,9 +31,9 @@ Before doing anything else, inspect project state:
    - `.ship/plan.md` missing AND `.ship/draft.md` exists → **Resume-interview mode**
    - `.ship/plan.md` missing AND no draft → **Fresh-ship mode** (Steps 1–5)
    - `.ship/plan.md` exists with `pending`, `in-progress`, or `blocked` features → **Resume-execute mode**
-   - `.ship/plan.md` exists, all features shipped → print `"Plan complete. Add features with /ship-code:ship add <desc>."` and stop
+   - `.ship/plan.md` exists but is empty / has no remaining feature sections → print `"Plan complete — <N> features in the ledger. Add features with /ship-code:ship add <desc>."` (where `<N>` is the entry count in `.ship/issues.md`) and stop
 
-   Treat `in-progress` as `pending` — the Step 4 loop re-runs the generator-evaluator loop and the generator picks up from any scaffolded files.
+   Treat `in-progress` as `pending` — the Step 4 loop re-runs the generator-evaluator loop and the generator picks up from any scaffolded files. Shipped features are **not** in plan.md anymore — they're pruned on SHIP and live in `.ship/issues.md`. Plan.md is the forecast; issues.md is the history.
 
 3. **Config sanity check:**
    - If `.ship/config.json` has `stack: "unknown"` → note this. The planner will bootstrap the stack during Step 3.
@@ -181,20 +181,69 @@ Main context orchestrates the generator-evaluator loops directly. No `ship-brain
 1. Read `.ship/plan.md`. Find the next feature whose status is `pending` or `in-progress` AND whose dependencies are all `shipped`.
 2. If none exist: jump to Step 5 (summary).
 3. Set that feature's status to `in-progress` via `Edit`.
-4. **Spawn `ship-generator`** via the `Agent` tool. Pass the feature brief inline as the prompt. Generator returns `status: success|failure` + commit hash or reason.
-5. If `status: failure` → mark `blocked`, increment consecutive-block counter, skip dependents, go to step 1.
+4. **Spawn `ship-generator`** via the `Agent` tool. Pass the feature brief inline as the prompt. Generator returns the full report (status, commit hash, title, summary, why, files, decisions — or status: failure with reason).
+5. If `status: failure` → **write a blocked ledger entry** (see Step 4a), mark `blocked` in plan.md, increment consecutive-block counter, skip dependents, go to step 1.
 6. If `status: success` → **spawn `ship-evaluator`** via the `Agent` tool. Evaluator returns SHIP / REVISE / REJECT with scores.
 7. Evaluator verdict:
-   - **SHIP** → mark `shipped`, reset consecutive-block counter, go to step 1.
-   - **REVISE** or **REJECT** → back to step 4 with evaluator's feedback appended to the generator prompt. Max 3 rounds before marking `blocked`.
+   - **SHIP** → **write a shipped ledger entry** (see Step 4a), **prune the feature from plan.md** (delete the section — its history now lives in the ledger), reset consecutive-block counter, go to step 1.
+   - **REVISE** or **REJECT** → back to step 4 with evaluator's feedback appended to the generator prompt. Increment the rounds counter. Max 3 rounds before writing a blocked ledger entry and marking `blocked` in plan.md.
 8. **Stop conditions:**
    - All features shipped → Step 5.
    - 3 consecutive features blocked → stop the batch, Step 5 with "plan likely needs rewriting."
    - Hard block violation detected → stop immediately, Step 5 with escalation note.
 
-**Parallel execution:** if multiple pending features all have their dependencies shipped, spawn their generators in a **single message with multiple Agent tool calls**. Evaluators run sequentially per feature (each depends on its generator finishing first).
+**Parallel execution:** if multiple pending features all have their dependencies shipped, spawn their generators in a **single message with multiple Agent tool calls**. Evaluators run sequentially per feature (each depends on its generator finishing first). Ledger writes happen sequentially too — main context appends to `.ship/issues.md` one entry at a time so `f<N>` numbering stays clean.
 
-**What main context holds:** only the short summaries subagents return — status, commit hash, verdict, scores. Never the raw diff, test output, or file contents.
+**What main context holds:** only the short summaries subagents return — status, commit hash, verdict, scores, file list. Never the raw diff, test output, or file contents.
+
+---
+
+## Step 4a — Write a ledger entry
+
+After every shipped feature, every blocked feature, and every `/ship-code:quick` task, main context appends one entry to `.ship/issues.md`.
+
+**Numbering:** read `.ship/issues.md`, find the last `## f<N>` heading. Next number is `N + 1`. If the file has no entries yet, start at `f1`. The `f<N>` namespace is global and append-only — independent of plan.md feature numbers, which are local to whichever plan they live in.
+
+**Entry format** (use exactly):
+
+```markdown
+## f<N> — <title>
+Date:    <ISO-8601 UTC, e.g. 2026-05-28T14:32Z>
+Source:  plan | quick | adhoc
+Commit:  <full-hash>
+Status:  shipped | blocked | reverted
+Eval:    <avg>/5  (Correctness <n> · Design <n> · Code <n> · Tests <n> · Security <n>)
+Rounds:  <N>
+
+### What shipped
+<2-3 sentences — user-visible behavior change, from generator's "summary" field>
+
+### Why
+<1-2 sentences — from generator's "why" field, or from the brief Goal>
+
+### Files touched
+- <path> (added|modified|deleted)
+- <path> (added|modified|deleted)
+
+### Decisions / gotchas
+- <only if generator returned any; omit the section if empty>
+
+### Blocked reason
+<only present if Status: blocked — paste generator/evaluator failure reason>
+
+---
+```
+
+**Source values:**
+- `plan` — feature came from `.ship/plan.md`
+- `quick` — feature came from `/ship-code:quick`
+- `adhoc` — feature added mid-conversation outside both (rare)
+
+**For `/quick` tasks** (no evaluator runs): set `Eval: ungraded` and `Rounds: 1`.
+
+**For blocked entries:** `Status: blocked`, `Eval: ungraded` if it never reached the evaluator (`Rounds: <N>` if it did), populate the `### Blocked reason` section, omit `### What shipped` if nothing usable shipped.
+
+**Commit it:** after writing the entry, commit `.ship/issues.md` (and any plan.md changes) in a single follow-up commit: `chore(ledger): f<N> <title>`. The ledger commit is intentionally separate from the feature commit so the feature hash in the ledger refers to a real prior commit.
 
 ---
 
@@ -215,7 +264,7 @@ Skipped (<K>):
 Stopped because: <one line — "all shipped" | "N blocked, nothing pending" | "3 consecutive blocks — plan likely needs rewriting" | "hard block tripped" | "user cancelled">
 
 Gates: lint + types + tests passed on shipped features.
-Issues: .ship/issues.md
+Ledger: .ship/issues.md (every shipped & blocked feature, ever)
 Next: fix blockers and run /ship-code:ship to resume, or git push when ready.
 ```
 

@@ -141,12 +141,16 @@ You never have to remember which command to use. `ship` knows.
 ```
 .ship/
 ├── config.json        # settings + stack
-├── HARD_BLOCKS.md     # rules agents can never violate (defaults + ingested CLAUDE.md)
-├── issues.md          # blockers and learnings
+├── HARD_BLOCKS.md     # rules agents read before every commit (defaults + ingested CLAUDE.md)
+├── issues.md          # ship ledger — append-only history of every shipped feature
 ├── draft.md           # interview checkpoint (transient)
 ├── prior-art.md       # competitor/OSS sweep
-└── plan.md            # the source of truth
+└── plan.md            # forecast — pending/in-progress/blocked (shipped entries are pruned to the ledger)
 ```
+
+`plan.md` is the to-do list (shrinks). `issues.md` is the history (grows). When a feature ships, its plan entry is pruned and a richer entry lands in `issues.md` — including ad-hoc `/ship-code:quick` work that never lived in plan.md. This is what stops your plan from drifting out of sync with reality.
+
+**Numbering note:** `plan.md` uses local "Feature 1, Feature 2, …" numbers — they're tied to the current plan and reset every time the plan empties out. `issues.md` uses global "f1, f2, … fN" numbers — they never reset, never get reused. So `/ship-code:ship 3` runs **plan Feature 3** (the next thing to build), while `f37` in the ledger is the 37th thing ever shipped on this project. Different namespaces by design.
 
 ---
 
@@ -169,4 +173,4 @@ You never have to remember which command to use. `ship` knows.
 - Hard block would be violated → stops immediately, never overrides
 - All remaining features depend on blocked ones
 
-Agents log to `.ship/issues.md`. They never silently work around blockers.
+Every shipped or blocked feature lands as an entry in `.ship/issues.md`. Agents never silently work around blockers.

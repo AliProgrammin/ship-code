@@ -184,15 +184,16 @@ The main context is the orchestrator. It stays light. All heavy work happens in 
 
 ## File structure
 
-```
-.ship/
-├── config.json          # Settings + stack
-├── HARD_BLOCKS.md       # Defaults + rules ingested from CLAUDE.md
-├── issues.md            # Agent blockers & learnings
-├── draft.md             # Interview checkpoint (transient, survives /clear)
-├── prior-art.md         # Competitor/OSS sweep (written by planner)
-└── plan.md              # Feature briefs — source of truth
-```
+See `README.md#file-structure` for the canonical layout. Quick reference:
+
+- `config.json` — settings + stack
+- `HARD_BLOCKS.md` — rules agents read before every commit (defaults + CLAUDE.md ingestion)
+- `issues.md` — **ship ledger** (append-only history of every shipped feature, including `/quick`)
+- `draft.md` — interview checkpoint (transient)
+- `prior-art.md` — competitor/OSS sweep (written by planner)
+- `plan.md` — forecast (only pending/in-progress/blocked; shipped entries are pruned to the ledger)
+
+`plan.md` shrinks as features ship. `issues.md` only grows. Together they give a clean separation between *what's planned* and *what happened*.
 
 ---
 
@@ -200,7 +201,7 @@ The main context is the orchestrator. It stays light. All heavy work happens in 
 
 | Situation | Action |
 |---|---|
-| Generator fails 3 times | Stop. Log to issues.md. Ask human. |
+| Generator fails 3 times | Stop. Append blocked entry to issues.md. Ask human. |
 | Evaluator rejects 3 times | Stop. Mark blocked. Continue with other features. |
 | Dependency blocked | Skip feature. Log. Continue. |
 | Hard block would be violated | Stop. Never violate. Escalate. |

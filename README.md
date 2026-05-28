@@ -81,6 +81,12 @@ rm -rf .ship/_prompts
 
 Your `.ship/plan.md`, `config.json`, `HARD_BLOCKS.md`, and `issues.md` stay — they're your project's state, not plugin files.
 
+**Upgrading from v4.3 or earlier:** v4.4 reshapes `.ship/issues.md` from a "blockers table" (that nobody wrote to) into an append-only **ship ledger** that captures every shipped feature — including the ad-hoc work that used to silently drift out of `plan.md`. Existing `issues.md` files keep working: new entries follow the new schema and the old table at the top is left untouched. v4.4 also drops dead fields from `.ship/config.json` (`gates.*` and `issue_log`) — they were never read by any agent. You can leave them in or delete them; ship-code ignores them either way.
+
+**Behavior change to be aware of:** shipped feature briefs are now **pruned from `plan.md`** when they ship — the richer history lives in `issues.md`. If you used to scroll through `plan.md` to see what shipped, scroll through `issues.md` instead (or `grep "^## f" .ship/issues.md` for a one-line-per-feature view). `plan.md` is now strictly the *forecast* — only pending, in-progress, and blocked work.
+
+`/ship-code:quick` also now produces **two commits** per task: the fix itself, then a `chore(ledger): f<N>` commit that records it in the ledger. If you don't want quick tasks in the ledger, skip step 7 in `commands/quick.md` for that invocation.
+
 ## Commands
 
 Claude Code gets five slash commands. `ship` is state-aware and absorbs the old `loop`, `run`, `plan`, `queue`.
@@ -192,12 +198,16 @@ Every feature gets scored 1-5 on:
 ```
 .ship/
 ├── config.json        # Settings + stack
-├── HARD_BLOCKS.md     # Defaults + rules ingested from CLAUDE.md
-├── issues.md          # Agent blockers & learnings
-├── draft.md           # Interview checkpoint (transient)
-├── prior-art.md       # Competitor/OSS sweep (written by planner)
-└── plan.md            # Feature briefs — the source of truth
+├── HARD_BLOCKS.md     # Defaults + rules ingested from CLAUDE.md (agents read this before every commit)
+├── issues.md          # Ship ledger — append-only history of every shipped feature (f1, f2, … fN)
+├── draft.md           # Interview checkpoint (transient — deleted when plan.md is written)
+├── prior-art.md       # Competitor/OSS sweep (written once by planner)
+└── plan.md            # Forecast — pending/in-progress/blocked feature briefs (shipped entries are pruned to the ledger)
 ```
+
+**plan.md vs issues.md** — `plan.md` is the forecast: what's coming next. When a feature ships, its entry is moved to `issues.md` and removed from the plan. This keeps `plan.md` a clean to-do list and makes `issues.md` the single source of truth for project history — including `/ship-code:quick` tasks and any ad-hoc work that never went through the planner.
+
+Each ledger entry records the title, date, source (plan/quick/adhoc), commit hash, status, evaluator scores, files touched, and any non-obvious decisions. Full entry format lives in `commands/ship.md` (Step 4a).
 
 ## License
 
