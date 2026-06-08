@@ -1,0 +1,10 @@
+# Secrets — never commit
+.secrets
+.npmrc
+*.tmp.npmrc
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
